@@ -1,0 +1,102 @@
+{
+  "theme_and_archetype": {
+    "archetype": "Archetype 5 (Jewel & Luxury)",
+    "theme": "Dark",
+    "rationale": "For an app evoking curiosity and wonder across science, space, history, and nature, a deep midnight dark theme feels cinematic and premium. It allows stunning imagery to pop and gives authority to the text."
+  },
+  "typography": {
+    "heading_font": "Cormorant Garamond",
+    "ui_font": "Outfit",
+    "body_font": "Merriweather",
+    "scale": {
+      "h1": 40,
+      "h2": 32,
+      "h3": 24,
+      "body": 16,
+      "caption": 12
+    },
+    "rules": [
+      "Headings must use tight tracking (-0.5px) and use Cormorant Garamond.",
+      "Body text for 'approfondimento' (deep dive) must use Merriweather with generous line-height (e.g., 24px) for readability.",
+      "UI elements like buttons, tags, and tabs must use Outfit in medium or bold weights with slight letter-spacing (0.5px)."
+    ]
+  },
+  "colors": {
+    "background": "#05060A",
+    "surface": "#12141D",
+    "primary": "#D4AF37",
+    "primary_dark": "#B5952F",
+    "text_primary": "#FFFFFF",
+    "text_secondary": "#A0AAB2",
+    "border": "#2A2D35",
+    "error": "#E63946",
+    "success": "#2A9D8F"
+  },
+  "layout_and_spacing": {
+    "screen_padding": 24,
+    "element_gap": 16,
+    "border_radius": {
+      "small": 8,
+      "medium": 16,
+      "large": 24,
+      "round": 9999
+    },
+    "guidelines": [
+      "Use 'FlatList' with 'pagingEnabled={true}' for the TikTok-style vertical feed.",
+      "Ensure bottom padding accounts for device safe areas (use SafeAreaView).",
+      "The 'Approfondimento' screen should feel like a premium Medium article: generous margins, high-contrast serif text, and no distractions.",
+      "Images in the feed must take up 100% of the screen with a gradient overlay (black/90 at the bottom, transparent in the middle, black/40 at the top) to guarantee text legibility."
+    ]
+  },
+  "components": {
+    "CuriosityCard": {
+      "description": "Full-screen vertical feed card.",
+      "styles": "Absolute fill image, linear gradient overlay. Text anchored to the bottom third. Large title, brief excerpt, and a 'Scopri di più' (Find out more) button.",
+      "interactions": "Double tap to like (show heart animation). Swipe up for next."
+    },
+    "NicheTag": {
+      "description": "Selectable chip for onboarding and settings.",
+      "styles": "Border radius 9999px. Unselected: transparent background, 1px solid #2A2D35, text #A0AAB2. Selected: solid #D4AF37 background, text #05060A."
+    },
+    "DetailBottomSheet": {
+      "description": "The deep dive view for a fact.",
+      "styles": "Background #12141D. Top drag indicator. ScrollView for content. Large Serif title. Serif body text."
+    }
+  },
+  "media_urls": [
+    {
+      "category": "background_space",
+      "url": "https://images.unsplash.com/photo-1505506874110-6a7a69069a08?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzNDR8MHwxfHNlYXJjaHwyfHxzcGFjZSUyMGdhbGF4eSUyMHN0YXJzJTIwZGFyayUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzc2NTM0NjkyfDA&ixlib=rb-4.1.0&q=85",
+      "description": "Space/Galaxy fact background"
+    },
+    {
+      "category": "background_history",
+      "url": "https://images.unsplash.com/photo-1555689572-28a3fb27533f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjh8MHwxfHNlYXJjaHw0fHxhbmNpZW50JTIwcm9tYW4lMjBzY3VscHR1cmUlMjBkYXJrJTIwYmFja2dyb3VuZHxlbnwwfHx8fDE3NzY1MzQ2ODR8MA&ixlib=rb-4.1.0&q=85",
+      "description": "History fact background (Ancient sculpture)"
+    },
+    {
+      "category": "background_science",
+      "url": "https://images.unsplash.com/photo-1766713655637-45c84da72c37?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2OTV8MHwxfHNlYXJjaHw0fHxtaWNyb3Njb3BlJTIwZ2xvd2luZyUyMHNjaWVuY2UlMjBhYnN0cmFjdHxlbnwwfHx8fDE3NzY1MzQ2OTJ8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Science/Nature fact background (Glowing leaf structure)"
+    },
+    {
+      "category": "background_nature",
+      "url": "https://images.unsplash.com/photo-1548320685-0b7a2d62bac4?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NTJ8MHwxfHNlYXJjaHwzfHxkYXJrJTIwbWlzdHklMjBmb3Jlc3QlMjBjYW5vcHklMjB2ZXJ0aWNhbHxlbnwwfHx8fDE3NzY1MzQ2OTJ8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Nature fact background (Misty forest)"
+    }
+  ],
+  "icons": {
+    "library": "@expo/vector-icons (Ionicons or Feather)",
+    "usage": "Use minimalist outlines. Fill them only when selected/active (e.g., filled heart for liked)."
+  },
+  "instructions_to_main_agent": [
+    "Use JS (not TSX) for all files.",
+    "Target React Native & Expo. Do not use standard web HTML tags like div or span.",
+    "For the daily feed, implement a vertical FlatList with pagingEnabled=true to snap to each full-screen item, simulating TikTok.",
+    "Use React Native Reanimated or standard Animated for the double-tap to like heart animation.",
+    "For typography, use expo-font to load 'Cormorant Garamond' (headings), 'Outfit' (UI), and 'Merriweather' (reading body). Fallback to standard serif/sans-serif if fonts fail to load.",
+    "All interactive elements (TouchableOpacity, Pressable, TextInput) MUST include a testID attribute (e.g., testID='login-button') per testing rules.",
+    "For gradients (crucial for text readability over images), use expo-linear-gradient. Overlay a gradient that goes from 'transparent' at the top to 'rgba(5,6,10,0.9)' at the bottom.",
+    "Keep text strictly in Italian as requested: 'Accedi', 'Lo Sapevi che?', 'Approfondimento', 'Scopri di più', 'I tuoi interessi', 'Profilo'."
+  ]
+}
