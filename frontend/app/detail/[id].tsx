@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
   Image,
   Dimensions,
+  Linking,
+  Share,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -25,6 +27,7 @@ type Fact = {
   category: string;
   image_url: string;
   source: string;
+  sources?: { title: string; url: string }[];
   is_liked?: boolean;
   is_bookmarked?: boolean;
 };
@@ -58,6 +61,15 @@ export default function Detail() {
     setFact({ ...fact, is_bookmarked: !fact.is_bookmarked });
     try {
       await api.bookmark(fact.id);
+    } catch {}
+  };
+
+  const onShare = async () => {
+    if (!fact) return;
+    try {
+      await Share.share({
+        message: `Lo sapevi che…\n\n${fact.title}\n\n${fact.short_fact}\n\n— Lo Sapevi che? ✨`,
+      });
     } catch {}
   };
 
@@ -105,6 +117,27 @@ export default function Detail() {
           </View>
 
           <Text style={styles.deep}>{fact.deep_dive}</Text>
+
+          {fact.sources && fact.sources.length > 0 && (
+            <View style={styles.sourcesBox}>
+              <Text style={styles.sourcesTitle}>FONTI</Text>
+              {fact.sources.map((s, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  testID={`source-${idx}`}
+                  style={styles.sourceRow}
+                  onPress={() => Linking.openURL(s.url).catch(() => {})}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="link-outline" size={14} color={theme.primary} />
+                  <Text style={styles.sourceText} numberOfLines={2}>
+                    {s.title}
+                  </Text>
+                  <Ionicons name="open-outline" size={14} color={theme.textMuted} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </View>
       </ScrollView>
 
@@ -133,6 +166,9 @@ export default function Detail() {
             size={22}
             color={fact.is_bookmarked ? theme.primary : theme.text}
           />
+        </TouchableOpacity>
+        <TouchableOpacity testID="detail-share" style={styles.iconOnly} onPress={onShare}>
+          <Ionicons name="share-social-outline" size={22} color={theme.text} />
         </TouchableOpacity>
       </SafeAreaView>
     </View>
@@ -185,6 +221,30 @@ const styles = StyleSheet.create({
   dividerLine: { flex: 1, height: 1, backgroundColor: theme.border },
   dividerText: { color: theme.primary, fontSize: 11, letterSpacing: 2, fontWeight: "700" },
   deep: { color: theme.textMuted, fontSize: 16, lineHeight: 26 },
+  sourcesBox: {
+    marginTop: 24,
+    padding: 16,
+    borderRadius: 14,
+    backgroundColor: theme.surface,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  sourcesTitle: {
+    color: theme.primary,
+    fontSize: 11,
+    letterSpacing: 2,
+    fontWeight: "700",
+    marginBottom: 10,
+  },
+  sourceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: theme.border,
+  },
+  sourceText: { color: theme.text, fontSize: 13, flex: 1, textDecorationLine: "underline" },
   bottomBar: {
     position: "absolute",
     bottom: 0,

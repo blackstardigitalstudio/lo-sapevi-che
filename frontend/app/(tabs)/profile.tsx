@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  Share,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,12 +24,24 @@ export default function Profile() {
   const { user, logout, refresh } = useAuth();
   const [notifStatus, setNotifStatus] = useState<string>("idle");
   const [busy, setBusy] = useState(false);
+  const [trophies, setTrophies] = useState<any[]>([]);
 
   useFocusEffect(
     useCallback(() => {
       refresh();
+      api.trophies().then(setTrophies).catch(() => {});
     }, [])
   );
+
+  const shareProfile = async () => {
+    if (!user) return;
+    try {
+      const earned = trophies.filter((t) => t.earned).length;
+      await Share.share({
+        message: `Sto esplorando il mondo con Lo Sapevi che? 🔮\n\n📖 ${user.stats.seen} curiosità lette\n❤️ ${user.stats.liked} preferite\n🔥 Streak: ${user.streak_days || 0} giorni\n🏆 ${earned} trofei sbloccati\n\nScopri anche tu curiosità affascinanti ogni giorno!`,
+      });
+    } catch {}
+  };
 
   if (!user) {
     return (
@@ -146,6 +159,49 @@ export default function Profile() {
           <Stat label="Lette" value={user.stats.seen} />
           <Stat label="Piaciute" value={user.stats.liked} />
           <Stat label="Salvate" value={user.stats.bookmarked} />
+        </View>
+
+        <View style={styles.streakCard} testID="streak-card">
+          <View style={styles.streakLeft}>
+            <Text style={styles.streakEmoji}>🔥</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.streakValue}>
+              {user.streak_days || 0} <Text style={styles.streakUnit}>giorni</Text>
+            </Text>
+            <Text style={styles.streakLabel}>Streak attuale</Text>
+            {user.best_streak ? (
+              <Text style={styles.streakBest}>Record personale: {user.best_streak}</Text>
+            ) : null}
+          </View>
+          <TouchableOpacity style={styles.shareMini} onPress={shareProfile} testID="share-profile">
+            <Ionicons name="share-social-outline" size={20} color={theme.primary} />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.sectionTitle}>Trofei · {trophies.filter((t) => t.earned).length}/{trophies.length}</Text>
+        <View style={styles.trophyGrid}>
+          {trophies.map((t) => (
+            <View
+              key={t.id}
+              testID={`trophy-${t.id}`}
+              style={[styles.trophyItem, !t.earned && styles.trophyItemLocked]}
+            >
+              <View style={[styles.trophyIcon, !t.earned && styles.trophyIconLocked]}>
+                <Ionicons
+                  name={t.icon as any}
+                  size={20}
+                  color={t.earned ? theme.bg : theme.textMuted}
+                />
+              </View>
+              <Text
+                style={[styles.trophyName, !t.earned && styles.trophyNameLocked]}
+                numberOfLines={1}
+              >
+                {t.name}
+              </Text>
+            </View>
+          ))}
         </View>
 
         <Text style={styles.sectionTitle}>Top interessi</Text>
@@ -329,4 +385,64 @@ const styles = StyleSheet.create({
   },
   rowText: { color: theme.text, fontSize: 15, flex: 1 },
   version: { color: theme.textMuted, fontSize: 11, textAlign: "center", marginTop: 30 },
+  streakCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.surface,
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: theme.primary,
+    marginBottom: 8,
+    gap: 16,
+  },
+  streakLeft: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "rgba(212,175,55,0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  streakEmoji: { fontSize: 32 },
+  streakValue: { color: theme.text, fontSize: 28, fontWeight: "700" },
+  streakUnit: { color: theme.textMuted, fontSize: 14, fontWeight: "400" },
+  streakLabel: { color: theme.textMuted, fontSize: 12, letterSpacing: 0.5, marginTop: 2 },
+  streakBest: { color: theme.primary, fontSize: 11, marginTop: 2, fontStyle: "italic" },
+  shareMini: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  trophyGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  trophyItem: {
+    width: "31%",
+    backgroundColor: theme.surface,
+    borderRadius: 14,
+    padding: 12,
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderColor: theme.primary,
+  },
+  trophyItemLocked: { borderColor: theme.border, opacity: 0.6 },
+  trophyIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  trophyIconLocked: { backgroundColor: theme.border },
+  trophyName: { color: theme.text, fontSize: 11, textAlign: "center", fontWeight: "600" },
+  trophyNameLocked: { color: theme.textMuted },
 });

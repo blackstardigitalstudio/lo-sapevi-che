@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Animated,
   RefreshControl,
+  Share,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -18,6 +19,7 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { api, theme } from "../../src/lib/api";
 import { useAuth } from "../../src/context/AuthContext";
+import { TrophyModal, Trophy } from "../../src/components/TrophyModal";
 
 const { height } = Dimensions.get("window");
 
@@ -41,6 +43,16 @@ export default function Feed() {
   const [bookmarked, setBookmarked] = useState<Set<string>>(new Set());
   const [cardHeight, setCardHeight] = useState(height);
   const [generating, setGenerating] = useState(false);
+  const [newTrophies, setNewTrophies] = useState<Trophy[]>([]);
+
+  const onShareFact = async (fact: Fact) => {
+    try {
+      Haptics.selectionAsync();
+      await Share.share({
+        message: `Lo sapevi che…\n\n${fact.title}\n\n${fact.short_fact}\n\n— condiviso da Lo Sapevi che? ✨`,
+      });
+    } catch {}
+  };
 
   const loadFeed = useCallback(async () => {
     try {
@@ -68,7 +80,8 @@ export default function Feed() {
     } catch {}
     setLiked((p) => new Set(p).add(fact.id));
     try {
-      await api.react(fact.id, "like");
+      const res = await api.react(fact.id, "like");
+      if (res?.new_trophies?.length) setNewTrophies(res.new_trophies);
       refreshUser();
     } catch {}
   };
@@ -97,7 +110,8 @@ export default function Feed() {
       return n;
     });
     try {
-      await api.bookmark(fact.id);
+      const res = await api.bookmark(fact.id);
+      if (res?.new_trophies?.length) setNewTrophies(res.new_trophies);
       refreshUser();
     } catch {}
   };
@@ -107,6 +121,7 @@ export default function Feed() {
     try {
       const fact = await api.generate();
       setFacts((prev) => [fact, ...prev]);
+      if (fact?.new_trophies?.length) setNewTrophies(fact.new_trophies);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {}
     setGenerating(false);
@@ -125,6 +140,7 @@ export default function Feed() {
         onLike={() => onLike(item)}
         onDislike={() => onDislike(item)}
         onBookmark={() => onBookmark(item)}
+        onShare={() => onShareFact(item)}
         onOpen={() => router.push(`/detail/${item.id}`)}
       />
     );
@@ -180,6 +196,8 @@ export default function Feed() {
           )}
         </TouchableOpacity>
       </SafeAreaView>
+
+      <TrophyModal trophies={newTrophies} onClose={() => setNewTrophies([])} />
     </View>
   );
 }
@@ -193,6 +211,7 @@ function DoubleTapCard({
   onLike,
   onDislike,
   onBookmark,
+  onShare,
   onOpen,
 }: {
   fact: Fact;
@@ -203,6 +222,7 @@ function DoubleTapCard({
   onLike: () => void;
   onDislike: () => void;
   onBookmark: () => void;
+  onShare: () => void;
   onOpen: () => void;
 }) {
   const lastTap = useRef(0);
@@ -317,6 +337,13 @@ function DoubleTapCard({
                     size={24}
                     color={isBookmarked ? theme.primary : theme.text}
                   />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  testID={`share-${fact.id}`}
+                  style={styles.iconBtn}
+                  onPress={onShare}
+                >
+                  <Ionicons name="share-social-outline" size={24} color={theme.text} />
                 </TouchableOpacity>
               </View>
             </View>

@@ -62,6 +62,14 @@ export const api = {
   generate: (category?: string) =>
     request(`/facts/generate`, { method: "POST", body: JSON.stringify({ category: category || null }) }),
   sendTestPush: () => request(`/notifications/send-test`, { method: "POST" }),
+  checkin: () => request(`/auth/checkin`, { method: "POST" }),
+  preview: () => request(`/preview`),
+  trophies: () => request(`/trophies`),
+  bulkGenerate: (count: number, category?: string) =>
+    request(`/facts/bulk-generate`, {
+      method: "POST",
+      body: JSON.stringify({ count, category: category || null }),
+    }),
 };
 
 export const theme = {

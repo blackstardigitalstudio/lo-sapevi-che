@@ -7,6 +7,9 @@ Features:
 - Bookmarks
 - AI generation of new facts via Emergent LLM Key (Claude Sonnet 4.5)
 - Push notification token registration
+- Gamification: daily streak, trophies
+- Sources/citations on facts
+- Preview cards per category (for onboarding)
 """
 from dotenv import load_dotenv
 from pathlib import Path
@@ -20,7 +23,7 @@ import json
 import random
 import logging
 import asyncio
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date
 from typing import List, Optional, Dict, Any
 
 import bcrypt
@@ -32,6 +35,7 @@ from pydantic import BaseModel, EmailStr, Field
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from seed_facts import SEED_FACTS, CATEGORIES, CATEGORY_EMOJI, CATEGORY_IMAGE_GROUP, IMAGE_URLS
+from seed_facts_extra import EXTRA_FACTS
 
 # ==========================================================
 # CONFIG
@@ -51,6 +55,61 @@ db = client[DB_NAME]
 
 app = FastAPI(title="Lo Sapevi che?")
 api = APIRouter(prefix="/api")
+
+
+# ==========================================================
+# TROPHIES DEFINITION
+# ==========================================================
+TROPHIES = [
+    {"id": "first_step", "name": "Primo passo", "desc": "Hai letto la tua prima curiosità", "icon": "footsteps"},
+    {"id": "curious", "name": "Curioso", "desc": "10 curiosità lette", "icon": "search"},
+    {"id": "scholar", "name": "Studioso", "desc": "50 curiosità lette", "icon": "school"},
+    {"id": "encyclopedia", "name": "Enciclopedia vivente", "desc": "200 curiosità lette", "icon": "library"},
+    {"id": "collector", "name": "Collezionista", "desc": "10 curiosità salvate", "icon": "bookmarks"},
+    {"id": "flame_3", "name": "Fiamma", "desc": "3 giorni di streak", "icon": "flame"},
+    {"id": "flame_7", "name": "Fuoco eterno", "desc": "7 giorni di streak", "icon": "bonfire"},
+    {"id": "flame_30", "name": "Leggenda", "desc": "30 giorni di streak", "icon": "trophy"},
+    {"id": "explorer", "name": "Esploratore", "desc": "Like in 10+ categorie diverse", "icon": "compass"},
+    {"id": "ai_pioneer", "name": "AI Pioneer", "desc": "5 curiosità generate con AI", "icon": "sparkles"},
+]
+
+
+def compute_trophies(user: Dict[str, Any]) -> List[str]:
+    """Return list of trophy IDs the user has earned."""
+    earned = []
+    stats_seen = len(user.get("seen_ids", []))
+    stats_bookmarked = len(user.get("bookmarked_ids", []))
+    streak = user.get("streak_days", 0)
+    ai_generated = user.get("ai_generated_count", 0)
+
+    # Count distinct categories where user liked something
+    liked_ids = user.get("liked_ids", [])
+    # We can't compute categories without DB lookup here; pass separately in checkin logic
+
+    if stats_seen >= 1:
+        earned.append("first_step")
+    if stats_seen >= 10:
+        earned.append("curious")
+    if stats_seen >= 50:
+        earned.append("scholar")
+    if stats_seen >= 200:
+        earned.append("encyclopedia")
+    if stats_bookmarked >= 10:
+        earned.append("collector")
+    if streak >= 3:
+        earned.append("flame_3")
+    if streak >= 7:
+        earned.append("flame_7")
+    if streak >= 30:
+        earned.append("flame_30")
+    if ai_generated >= 5:
+        earned.append("ai_pioneer")
+
+    liked_categories = user.get("liked_categories", [])
+    if len(set(liked_categories)) >= 10:
+        earned.append("explorer")
+
+    return earned
 
 
 # ==========================================================
@@ -84,14 +143,9 @@ class GenerateIn(BaseModel):
     category: Optional[str] = None
 
 
-class UserPublic(BaseModel):
-    id: str
-    email: str
-    name: str
-    interests: List[str]
-    interest_weights: Dict[str, float]
-    stats: Dict[str, int]
-    created_at: datetime
+class BulkGenerateIn(BaseModel):
+    count: int = Field(default=5, ge=1, le=10)
+    category: Optional[str] = None
 
 
 # ==========================================================
@@ -127,6 +181,10 @@ def user_to_public(u: Dict[str, Any]) -> Dict[str, Any]:
             "bookmarked": len(u.get("bookmarked_ids", [])),
             "seen": len(u.get("seen_ids", [])),
         },
+        "streak_days": u.get("streak_days", 0),
+        "best_streak": u.get("best_streak", 0),
+        "trophies": u.get("trophies", []),
+        "ai_generated_count": u.get("ai_generated_count", 0),
         "created_at": u.get("created_at"),
     }
 
@@ -148,6 +206,31 @@ async def current_user(request: Request) -> Dict[str, Any]:
     return user
 
 
+async def update_trophies_for_user(user_id: str) -> List[str]:
+    """Recompute trophies and return newly earned IDs."""
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        return []
+    # Compute liked_categories for explorer trophy
+    liked_ids = user.get("liked_ids", [])
+    categories = []
+    if liked_ids:
+        cursor = db.facts.find({"id": {"$in": liked_ids}}, {"_id": 0, "category": 1})
+        liked_facts = await cursor.to_list(1000)
+        categories = [f["category"] for f in liked_facts]
+    user["liked_categories"] = categories
+
+    existing = set(user.get("trophies", []))
+    earned = set(compute_trophies(user))
+    new = earned - existing
+    if new:
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {"trophies": list(earned)}},
+        )
+    return list(new)
+
+
 # ==========================================================
 # STARTUP: seed facts + indexes
 # ==========================================================
@@ -161,7 +244,8 @@ async def on_startup():
     if count == 0:
         logger.info("Seeding facts database...")
         docs = []
-        for f in SEED_FACTS:
+        all_seed = SEED_FACTS + EXTRA_FACTS
+        for f in all_seed:
             docs.append({
                 "id": str(uuid.uuid4()),
                 "title": f["title"],
@@ -170,11 +254,37 @@ async def on_startup():
                 "category": f["category"],
                 "image_url": f["image_url"],
                 "source": f.get("source", "seed"),
+                "sources": f.get("sources", []),
                 "created_at": datetime.now(timezone.utc),
             })
         if docs:
             await db.facts.insert_many(docs)
             logger.info(f"Inserted {len(docs)} seed facts.")
+    else:
+        # Incremental seed: add any new EXTRA_FACTS not present yet (by title)
+        try:
+            titles_in_db = set(
+                f["title"] for f in await db.facts.find({}, {"_id": 0, "title": 1}).to_list(10000)
+            )
+            new_docs = []
+            for f in SEED_FACTS + EXTRA_FACTS:
+                if f["title"] not in titles_in_db:
+                    new_docs.append({
+                        "id": str(uuid.uuid4()),
+                        "title": f["title"],
+                        "short_fact": f["short_fact"],
+                        "deep_dive": f["deep_dive"],
+                        "category": f["category"],
+                        "image_url": f["image_url"],
+                        "source": f.get("source", "seed"),
+                        "sources": f.get("sources", []),
+                        "created_at": datetime.now(timezone.utc),
+                    })
+            if new_docs:
+                await db.facts.insert_many(new_docs)
+                logger.info(f"Added {len(new_docs)} new seed facts (incremental).")
+        except Exception as e:
+            logger.warning(f"Incremental seed skipped: {e}")
 
 
 @app.on_event("shutdown")
@@ -191,7 +301,6 @@ async def register(data: RegisterIn):
     if await db.users.find_one({"email": email}):
         raise HTTPException(400, "Email già registrata")
 
-    # Initial weights: 1.0 for selected interests, 0.3 for others
     weights = {c: (1.0 if c in data.interests else 0.3) for c in CATEGORIES}
 
     user_id = str(uuid.uuid4())
@@ -207,6 +316,11 @@ async def register(data: RegisterIn):
         "bookmarked_ids": [],
         "seen_ids": [],
         "expo_push_token": None,
+        "streak_days": 0,
+        "best_streak": 0,
+        "last_checkin_date": None,
+        "trophies": [],
+        "ai_generated_count": 0,
         "created_at": datetime.now(timezone.utc),
     }
     await db.users.insert_one(doc)
@@ -232,7 +346,6 @@ async def me(user=Depends(current_user)):
 @api.post("/auth/interests")
 async def update_interests(data: UpdateInterestsIn, user=Depends(current_user)):
     weights = user.get("interest_weights", {})
-    # Boost selected categories; reset non-selected to 0.3 minimum but keep learned weights
     for cat in CATEGORIES:
         if cat in data.interests:
             weights[cat] = max(weights.get(cat, 0.3), 1.0)
@@ -252,8 +365,49 @@ async def set_push_token(data: PushTokenIn, user=Depends(current_user)):
     return {"ok": True}
 
 
+@api.post("/auth/checkin")
+async def daily_checkin(user=Depends(current_user)):
+    """Call on app open. Updates streak and returns trophies newly earned."""
+    today = datetime.now(timezone.utc).date().isoformat()
+    last = user.get("last_checkin_date")
+    streak = user.get("streak_days", 0)
+    best = user.get("best_streak", 0)
+
+    if last == today:
+        # Already checked in today, nothing to update
+        new_trophies = await update_trophies_for_user(user["id"])
+    else:
+        if last:
+            last_date = date.fromisoformat(last)
+            today_date = date.fromisoformat(today)
+            delta = (today_date - last_date).days
+            if delta == 1:
+                streak += 1
+            elif delta > 1:
+                streak = 1
+            # if delta == 0 impossible (handled above)
+        else:
+            streak = 1
+
+        best = max(best, streak)
+        await db.users.update_one(
+            {"id": user["id"]},
+            {"$set": {"streak_days": streak, "best_streak": best, "last_checkin_date": today}},
+        )
+        new_trophies = await update_trophies_for_user(user["id"])
+
+    updated = await db.users.find_one({"id": user["id"]}, {"_id": 0})
+    new_trophy_details = [t for t in TROPHIES if t["id"] in new_trophies]
+    return {
+        "streak_days": updated.get("streak_days", 0),
+        "best_streak": updated.get("best_streak", 0),
+        "trophies": updated.get("trophies", []),
+        "new_trophies": new_trophy_details,
+    }
+
+
 # ==========================================================
-# CATEGORIES
+# CATEGORIES & PREVIEW
 # ==========================================================
 @api.get("/categories")
 async def list_categories():
@@ -263,19 +417,53 @@ async def list_categories():
     ]
 
 
+@api.get("/preview")
+async def preview_per_category():
+    """One sample fact per category, for richer onboarding."""
+    out = []
+    for cat in CATEGORIES:
+        cursor = db.facts.find({"category": cat}, {"_id": 0}).limit(1)
+        items = await cursor.to_list(1)
+        if items:
+            f = items[0]
+            out.append({
+                "category": cat,
+                "icon": CATEGORY_EMOJI.get(cat, "sparkles"),
+                "sample_title": f["title"],
+                "sample_short": f["short_fact"],
+                "image_url": f["image_url"],
+            })
+        else:
+            out.append({
+                "category": cat,
+                "icon": CATEGORY_EMOJI.get(cat, "sparkles"),
+                "sample_title": cat,
+                "sample_short": "Scopri curiosità su " + cat.lower(),
+                "image_url": IMAGE_URLS.get(CATEGORY_IMAGE_GROUP.get(cat, "background_space")),
+            })
+    return out
+
+
+@api.get("/trophies")
+async def list_trophies(user=Depends(current_user)):
+    earned = set(user.get("trophies", []))
+    out = []
+    for t in TROPHIES:
+        out.append({**t, "earned": t["id"] in earned})
+    return out
+
+
 # ==========================================================
 # FEED
 # ==========================================================
 def pick_weighted(user: Dict[str, Any], facts: List[Dict[str, Any]], n: int) -> List[Dict[str, Any]]:
-    """Pick n facts from candidates weighted by the user's interest weights."""
     if not facts:
         return []
     weights = user.get("interest_weights", {})
-    # score each fact
     scored = []
     for f in facts:
         w = max(weights.get(f["category"], 0.3), 0.05)
-        scored.append((w + random.random() * 0.2, f))  # small random perturbation
+        scored.append((w + random.random() * 0.2, f))
     scored.sort(key=lambda x: -x[0])
     return [s[1] for s in scored[:n]]
 
@@ -285,13 +473,11 @@ async def feed(limit: int = 20, user=Depends(current_user)):
     seen = set(user.get("seen_ids", []))
     disliked = set(user.get("disliked_ids", []))
     exclude = seen | disliked
-    # Fetch a larger pool then pick weighted top N
-    cursor = db.facts.find({"id": {"$nin": list(exclude)}}, {"_id": 0}).limit(200)
-    candidates = await cursor.to_list(200)
+    cursor = db.facts.find({"id": {"$nin": list(exclude)}}, {"_id": 0}).limit(300)
+    candidates = await cursor.to_list(300)
     if not candidates:
-        # If user has seen everything, allow seen but not disliked
-        cursor = db.facts.find({"id": {"$nin": list(disliked)}}, {"_id": 0}).limit(200)
-        candidates = await cursor.to_list(200)
+        cursor = db.facts.find({"id": {"$nin": list(disliked)}}, {"_id": 0}).limit(300)
+        candidates = await cursor.to_list(300)
     picked = pick_weighted(user, candidates, limit)
     return {"facts": picked}
 
@@ -299,6 +485,7 @@ async def feed(limit: int = 20, user=Depends(current_user)):
 @api.post("/facts/{fact_id}/seen")
 async def mark_seen(fact_id: str, user=Depends(current_user)):
     await db.users.update_one({"id": user["id"]}, {"$addToSet": {"seen_ids": fact_id}})
+    await update_trophies_for_user(user["id"])
     return {"ok": True}
 
 
@@ -328,7 +515,9 @@ async def react(fact_id: str, data: ReactIn, user=Depends(current_user)):
         )
     else:
         raise HTTPException(400, "Azione non valida")
-    return {"ok": True, "new_weight": weights[cat]}
+    new_trophies = await update_trophies_for_user(user["id"])
+    new_trophy_details = [t for t in TROPHIES if t["id"] in new_trophies]
+    return {"ok": True, "new_weight": weights[cat], "new_trophies": new_trophy_details}
 
 
 @api.post("/facts/{fact_id}/bookmark")
@@ -336,9 +525,13 @@ async def bookmark(fact_id: str, user=Depends(current_user)):
     bookmarked = set(user.get("bookmarked_ids", []))
     if fact_id in bookmarked:
         await db.users.update_one({"id": user["id"]}, {"$pull": {"bookmarked_ids": fact_id}})
-        return {"ok": True, "bookmarked": False}
-    await db.users.update_one({"id": user["id"]}, {"$addToSet": {"bookmarked_ids": fact_id}})
-    return {"ok": True, "bookmarked": True}
+        result = {"ok": True, "bookmarked": False, "new_trophies": []}
+    else:
+        await db.users.update_one({"id": user["id"]}, {"$addToSet": {"bookmarked_ids": fact_id}})
+        new_trophies = await update_trophies_for_user(user["id"])
+        result = {"ok": True, "bookmarked": True,
+                  "new_trophies": [t for t in TROPHIES if t["id"] in new_trophies]}
+    return result
 
 
 @api.get("/facts/bookmarks")
@@ -375,7 +568,6 @@ async def get_fact(fact_id: str, user=Depends(current_user)):
 # AI GENERATION (Claude Sonnet 4.5 via Emergent)
 # ==========================================================
 async def generate_fact_ai(category: str) -> Optional[Dict[str, Any]]:
-    """Generate a new 'Lo sapevi che?' fact using Claude Sonnet 4.5."""
     try:
         from emergentintegrations.llm.chat import LlmChat, UserMessage
     except Exception as e:
@@ -385,11 +577,12 @@ async def generate_fact_ai(category: str) -> Optional[Dict[str, Any]]:
     system = (
         "Sei un esperto divulgatore italiano. Scrivi curiosità verificate e affascinanti "
         "nel formato 'Lo sapevi che?' Rispondi ESCLUSIVAMENTE con un JSON valido con questi campi: "
-        '{"title": "...", "short_fact": "...", "deep_dive": "..."} '
+        '{"title": "...", "short_fact": "...", "deep_dive": "...", "sources": [{"title": "...", "url": "..."}]} '
         "Il title deve essere accattivante (max 80 caratteri). "
         "Lo short_fact è una frase di 1-2 righe che sorprende. "
         "Il deep_dive è un approfondimento di 3-5 frasi con dettagli storici, scientifici o curiosi. "
-        "Scrivi sempre in italiano impeccabile. Non usare markdown, solo testo piano nel JSON."
+        "Le sources (1-2 elementi) devono essere fonti reali e autorevoli (Wikipedia, riviste scientifiche, siti universitari, musei). "
+        "Scrivi sempre in italiano impeccabile. Non usare markdown, solo JSON puro."
     )
     try:
         chat = LlmChat(
@@ -400,20 +593,27 @@ async def generate_fact_ai(category: str) -> Optional[Dict[str, Any]]:
         prompt = (
             f"Generami UNA nuova curiosità verificata nella categoria: '{category}'. "
             "Evita fatti banali e cerca qualcosa di veramente interessante e poco noto. "
-            "Rispondi SOLO con il JSON richiesto."
+            "Includi 1-2 fonti autorevoli verificabili. Rispondi SOLO con il JSON."
         )
         resp = await chat.send_message(UserMessage(text=prompt))
         raw = (resp or "").strip()
-        # Sometimes models wrap in ```json ... ```
         if raw.startswith("```"):
             raw = raw.strip("`")
             if raw.startswith("json"):
                 raw = raw[4:].strip()
         data = json.loads(raw)
+        sources = data.get("sources") or []
+        if not isinstance(sources, list):
+            sources = []
+        clean_sources = []
+        for s in sources[:3]:
+            if isinstance(s, dict) and s.get("title") and s.get("url"):
+                clean_sources.append({"title": str(s["title"])[:200], "url": str(s["url"])[:500]})
         return {
             "title": data["title"][:200],
             "short_fact": data["short_fact"],
             "deep_dive": data["deep_dive"],
+            "sources": clean_sources,
         }
     except Exception as e:
         logger.error(f"AI generation error: {e}")
@@ -422,7 +622,6 @@ async def generate_fact_ai(category: str) -> Optional[Dict[str, Any]]:
 
 @api.post("/facts/generate")
 async def generate_new_fact(data: GenerateIn, user=Depends(current_user)):
-    # Pick category from user's top weights if not provided
     category = data.category
     if not category:
         weights = user.get("interest_weights", {})
@@ -443,6 +642,7 @@ async def generate_new_fact(data: GenerateIn, user=Depends(current_user)):
         "title": ai["title"],
         "short_fact": ai["short_fact"],
         "deep_dive": ai["deep_dive"],
+        "sources": ai.get("sources", []),
         "category": category,
         "image_url": IMAGE_URLS[img_group],
         "source": "ai",
@@ -450,22 +650,59 @@ async def generate_new_fact(data: GenerateIn, user=Depends(current_user)):
     }
     await db.facts.insert_one(doc)
     doc.pop("_id", None)
-    return doc
+
+    # Track AI generation count
+    await db.users.update_one({"id": user["id"]}, {"$inc": {"ai_generated_count": 1}})
+    new_trophies = await update_trophies_for_user(user["id"])
+
+    return {**doc, "new_trophies": [t for t in TROPHIES if t["id"] in new_trophies]}
+
+
+@api.post("/facts/bulk-generate")
+async def bulk_generate_facts(data: BulkGenerateIn, user=Depends(current_user)):
+    """Generate multiple AI facts, optionally for a specific category or rotating categories."""
+    cats = [data.category] * data.count if data.category else random.sample(CATEGORIES, min(data.count, len(CATEGORIES)))
+    created = []
+    for cat in cats:
+        if cat not in CATEGORIES:
+            continue
+        ai = await generate_fact_ai(cat)
+        if not ai:
+            continue
+        img_group = CATEGORY_IMAGE_GROUP.get(cat, "background_space")
+        doc = {
+            "id": str(uuid.uuid4()),
+            "title": ai["title"],
+            "short_fact": ai["short_fact"],
+            "deep_dive": ai["deep_dive"],
+            "sources": ai.get("sources", []),
+            "category": cat,
+            "image_url": IMAGE_URLS[img_group],
+            "source": "ai",
+            "created_at": datetime.now(timezone.utc),
+        }
+        await db.facts.insert_one(doc)
+        doc.pop("_id", None)
+        created.append(doc)
+
+    if created:
+        await db.users.update_one({"id": user["id"]}, {"$inc": {"ai_generated_count": len(created)}})
+        await update_trophies_for_user(user["id"])
+
+    return {"created": len(created), "facts": created}
 
 
 # ==========================================================
-# PUSH (send via Expo)
+# PUSH
 # ==========================================================
 EXPO_PUSH_API = "https://exp.host/--/api/v2/push/send"
 
 
 @api.post("/notifications/send-test")
 async def send_test_push(user=Depends(current_user)):
-    """Send a test push to the current user immediately."""
     token = user.get("expo_push_token")
     if not token:
         raise HTTPException(400, "Nessun token push registrato")
-    # Pick a fact matching top interest
     weights = user.get("interest_weights", {})
     cat = max(weights.keys(), key=lambda k: weights.get(k, 0)) if weights else random.choice(CATEGORIES)
     fact = await db.facts.find_one({"category": cat}, {"_id": 0})
@@ -504,7 +741,6 @@ async def health():
     return {"ok": True, "facts": facts_count, "users": users_count}
 
 
-# Mount router
 app.include_router(api)
 
 app.add_middleware(

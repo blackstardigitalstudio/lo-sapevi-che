@@ -8,6 +8,10 @@ type User = {
   interests: string[];
   interest_weights: Record<string, number>;
   stats: { liked: number; disliked: number; bookmarked: number; seen: number };
+  streak_days?: number;
+  best_streak?: number;
+  trophies?: string[];
+  ai_generated_count?: number;
   created_at: string;
 };
 
