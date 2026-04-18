@@ -1,26 +1,46 @@
 # PRD — Lo Sapevi che?
 
 ## Vision
-Italian mobile app (Expo React Native) delivering daily curated "Did You Know?" facts across 20 niches. Users refine personalization via like/dislike. Premium Medium-meets-TikTok reading experience.
+Italian mobile app (Expo React Native) delivering daily curated "Did You Know?" facts across 20 niches. Users refine personalization via like/dislike. Gamification via streak + trophies + sharing. Premium Medium-meets-TikTok reading experience.
 
-## Core Features
-1. **Auth (JWT)** — email + password register/login, bearer token, 30-day session.
-2. **Interest Onboarding** — select 3+ niches from 20 categories.
-3. **Personalized Feed** — TikTok-style vertical FlatList (pagingEnabled), full-screen cards with gradient-overlaid images, title/excerpt, double-tap-to-like heart animation.
-4. **Like/Dislike Algorithm** — on-device interactions update server-side `interest_weights` per category. Liked = +0.15 (max 3.0), disliked = -0.20 (min 0.05). Feed picks weighted-top candidates from unseen pool.
-5. **Approfondimento (Detail)** — premium editorial view with hero image and serif-like typography for deep dives.
-6. **Saved / Bookmarks** — dedicated tab.
-7. **Profile** — avatar, stats (letti / piaciute / salvate), top-5 weighted interests bar chart, logout.
-8. **AI Generation** — FAB ✨ button generates new fact via Claude Sonnet 4.5 (Emergent LLM key) based on top user interest.
-9. **Push Notifications** — daily local scheduled notification at 09:00 via `expo-notifications` (CALENDAR trigger), with toggle in Profile.
+## Core Features (v1)
+- Auth JWT (email/password)
+- Interest onboarding
+- Personalized TikTok-style feed
+- Like/Dislike algorithm (weights update)
+- Approfondimento detail view
+- Saved/Bookmarks, Profile
+- AI generation (Claude Sonnet 4.5)
+- Daily local scheduled notifications
+
+## v2 Features (this iteration)
+- **Content**: 96+ curated Italian facts + AI bulk generation (`/api/facts/bulk-generate`). Facts now carry `sources` (list of {title, url}).
+- **Richer Onboarding**: preview cards per category with hero image and a sample "Lo sapevi che..." fact pulled from each niche.
+- **Deep dive with citations**: Detail view shows a "FONTI" section with tappable links (opens in device browser via `Linking`).
+- **Gamification**:
+  - Daily streak (`streak_days`, `best_streak`, `last_checkin_date`) via `POST /api/auth/checkin` on app open.
+  - 10 trophies: Primo passo, Curioso, Studioso, Enciclopedia vivente, Collezionista, Fiamma (3gg), Fuoco eterno (7gg), Leggenda (30gg), Esploratore (like 10+ cat), AI Pioneer (5 AI facts).
+  - Trophy modal pops on app open for newly earned achievements.
+  - Profile displays streak card + trophies grid.
+- **Social**: native `Share` API — share facts from feed card, detail view, and share your profile stats.
 
 ## Tech Stack
-- Frontend: Expo SDK 54, expo-router, React Native, TypeScript, expo-linear-gradient, expo-notifications, expo-device, AsyncStorage, expo-haptics.
-- Backend: FastAPI, Motor (MongoDB), bcrypt, PyJWT, emergentintegrations (Claude Sonnet 4.5), httpx.
-- DB: MongoDB `lo_sapevi_che` — collections: `users`, `facts`.
+- Frontend: Expo SDK 54, expo-router, TypeScript, expo-linear-gradient, expo-notifications, AsyncStorage, expo-haptics.
+- Backend: FastAPI, Motor/MongoDB, bcrypt, PyJWT, emergentintegrations (Claude Sonnet 4.5).
 
-## Seed Data
-28 curated Italian facts across 20 niches (Scienza, Storia, Tecnologia, Natura, Spazio, Cucina, Sport, Arte, Psicologia, Cinema, Musica, Geografia, Medicina, Filosofia, Economia, Letteratura, Animali, Matematica, Viaggi, Mitologia).
+## Key API endpoints (all require Bearer auth except register/login)
+- `POST /api/auth/register|login`, `GET /api/auth/me`, `POST /api/auth/interests|push-token|checkin`
+- `GET /api/categories|preview|trophies|feed|facts/bookmarks|facts/liked|facts/{id}`
+- `POST /api/facts/{id}/react|bookmark|seen`
+- `POST /api/facts/generate|bulk-generate`
+- `GET /api/health`
 
-## User Flow
-Splash → Login/Register → Onboarding (if interests empty) → Tabs [Feed, Salvati, Profilo] → Detail (approfondimento) → back.
+## Test Results
+- Iteration 1: 20/20 passed (MVP)
+- Iteration 2: 31/31 backend + 100% frontend (gamification + content)
+
+## Next Ideas
+- Remote Expo push notifications (requires EAS projectId)
+- Streak restoration items (1 freebie/week)
+- Leaderboards, friends/follow
+- Premium tier (unlimited AI generation, exclusive deep dives)
