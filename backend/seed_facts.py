@@ -9,7 +9,7 @@ CATEGORIES = [
 ]
 
 CATEGORY_EMOJI = {
-    "Scienza": "atom",
+    "Scienza": "flask",
     "Storia": "book",
     "Tecnologia": "hardware-chip",
     "Natura": "leaf",
