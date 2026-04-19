@@ -109,10 +109,9 @@ export default function Profile() {
           sound: "default",
         },
         trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+          type: Notifications.SchedulableTriggerInputTypes.DAILY,
           hour: 9,
           minute: 0,
-          repeats: true,
         } as any,
       });
 
