@@ -13,16 +13,20 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
-import * as Device from "expo-device";
-import Constants from "expo-constants";
 import { useFocusEffect, useRouter } from "expo-router";
 import { api, theme } from "../../src/lib/api";
 import { useAuth } from "../../src/context/AuthContext";
+import {
+  ensureDailyNotifications,
+  disableDailyNotifications,
+  areNotificationsActive,
+  NOTIFICATION_SLOTS,
+} from "../../src/lib/notifications";
 
 export default function Profile() {
   const router = useRouter();
   const { user, logout, refresh } = useAuth();
-  const [notifStatus, setNotifStatus] = useState<string>("idle");
+  const [notifActive, setNotifActive] = useState<boolean>(true);
   const [busy, setBusy] = useState(false);
   const [trophies, setTrophies] = useState<any[]>([]);
 
@@ -30,6 +34,7 @@ export default function Profile() {
     useCallback(() => {
       refresh();
       api.trophies().then(setTrophies).catch(() => {});
+      areNotificationsActive().then(setNotifActive).catch(() => {});
     }, [])
   );
 
@@ -57,69 +62,32 @@ export default function Profile() {
 
   const enablePush = async () => {
     setBusy(true);
-    setNotifStatus("requesting");
     try {
-      if (!Device.isDevice) {
-        setNotifStatus("simulator");
+      const res = await ensureDailyNotifications(true);
+      if (res === "granted") {
+        setNotifActive(true);
         Alert.alert(
-          "Dispositivo fisico richiesto",
-          "Le notifiche push funzionano solo su dispositivi fisici, non su emulatori."
+          "Notifiche attive",
+          `Riceverai 4 curiosità al giorno:\n${NOTIFICATION_SLOTS.join(" · ")}`,
         );
-        return;
-      }
-      if (Platform.OS === "android") {
-        await Notifications.setNotificationChannelAsync("default", {
-          name: "Curiosità del giorno",
-          importance: Notifications.AndroidImportance.HIGH,
-          vibrationPattern: [0, 250, 250, 250],
-          lightColor: theme.primary,
-        });
-      }
-      const { status: existing } = await Notifications.getPermissionsAsync();
-      let finalStatus = existing;
-      if (existing !== "granted") {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-      if (finalStatus !== "granted") {
-        setNotifStatus("denied");
+      } else if (res === "simulator") {
+        Alert.alert("Dispositivo fisico richiesto", "Le notifiche funzionano solo su dispositivi reali.");
+      } else if (res === "denied") {
         Alert.alert("Permesso negato", "Abilita le notifiche dalle impostazioni di sistema.");
-        return;
+      } else {
+        Alert.alert("Errore", "Impossibile attivare le notifiche.");
       }
-      const projectId =
-        (Constants as any)?.expoConfig?.extra?.eas?.projectId ??
-        (Constants as any)?.easConfig?.projectId;
-      let tokenStr = "";
-      try {
-        const token = await Notifications.getExpoPushTokenAsync(
-          projectId ? { projectId } : undefined
-        );
-        tokenStr = token.data;
-      } catch (e) {
-        tokenStr = `local-${user.id}`;
-      }
-      await api.setPushToken(tokenStr);
+    } finally {
+      setBusy(false);
+    }
+  };
 
-      // Schedule daily local notification at 09:00
-      await Notifications.cancelAllScheduledNotificationsAsync();
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: "Lo Sapevi che?",
-          body: "La tua curiosità del giorno ti aspetta ✨",
-          sound: "default",
-        },
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.DAILY,
-          hour: 9,
-          minute: 0,
-        } as any,
-      });
-
-      setNotifStatus("granted");
-      Alert.alert("Notifiche attivate", "Riceverai ogni giorno alle 9:00 una nuova curiosità.");
-    } catch (e: any) {
-      setNotifStatus("error");
-      Alert.alert("Errore", e?.message || "Impossibile attivare le notifiche");
+  const disablePush = async () => {
+    setBusy(true);
+    try {
+      await disableDailyNotifications();
+      setNotifActive(false);
+      Alert.alert("Notifiche disattivate", "Non riceverai più promemoria giornalieri.");
     } finally {
       setBusy(false);
     }
@@ -222,35 +190,73 @@ export default function Profile() {
         </View>
 
         <Text style={styles.sectionTitle}>Notifiche giornaliere</Text>
-        <View style={styles.actionCard}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.actionTitle}>Curiosità quotidiana</Text>
-            <Text style={styles.actionSubtitle}>
-              Ogni giorno alle 9:00 una nuova perla di sapere
-            </Text>
-          </View>
-          <TouchableOpacity
-            testID="enable-push"
-            style={styles.actionBtn}
-            onPress={enablePush}
-            disabled={busy}
-          >
-            {busy ? (
-              <ActivityIndicator color={theme.bg} />
-            ) : (
-              <Text style={styles.actionBtnText}>
-                {notifStatus === "granted" ? "Attivo" : "Attiva"}
+        <View style={styles.notifCard}>
+          <View style={styles.notifHead}>
+            <View style={styles.notifIconWrap}>
+              <Ionicons
+                name={notifActive ? "notifications" : "notifications-off"}
+                size={20}
+                color={notifActive ? theme.bg : theme.textMuted}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.actionTitle}>
+                {notifActive ? "Attive · 4 al giorno" : "Disattivate"}
               </Text>
-            )}
-          </TouchableOpacity>
-        </View>
+              <Text style={styles.actionSubtitle}>
+                {notifActive
+                  ? "Ti ricorderemo una curiosità fresca in questi orari"
+                  : "Attivale per ricevere 4 promemoria al giorno"}
+              </Text>
+            </View>
+          </View>
 
-        {notifStatus === "granted" && (
-          <TouchableOpacity style={styles.ghostBtn} onPress={testPush} testID="test-push">
-            <Ionicons name="notifications-outline" size={18} color={theme.primary} />
-            <Text style={styles.ghostText}>Prova notifica (3 sec)</Text>
-          </TouchableOpacity>
-        )}
+          <View style={styles.slotsRow}>
+            {NOTIFICATION_SLOTS.map((t) => (
+              <View
+                key={t}
+                testID={`slot-${t}`}
+                style={[styles.slotChip, notifActive && styles.slotChipOn]}
+              >
+                <Text style={[styles.slotText, notifActive && styles.slotTextOn]}>{t}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.notifBtnRow}>
+            {notifActive ? (
+              <TouchableOpacity
+                testID="disable-push"
+                style={[styles.notifBtn, styles.notifBtnGhost]}
+                onPress={disablePush}
+                disabled={busy}
+              >
+                {busy ? (
+                  <ActivityIndicator color={theme.text} />
+                ) : (
+                  <Text style={styles.notifBtnGhostText}>Disattiva</Text>
+                )}
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                testID="enable-push"
+                style={styles.notifBtn}
+                onPress={enablePush}
+                disabled={busy}
+              >
+                {busy ? (
+                  <ActivityIndicator color={theme.bg} />
+                ) : (
+                  <Text style={styles.notifBtnText}>Attiva</Text>
+                )}
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={styles.notifBtnSmall} onPress={testPush} testID="test-push">
+              <Ionicons name="notifications-outline" size={16} color={theme.primary} />
+              <Text style={styles.notifBtnSmallText}>Prova</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
         <Text style={styles.sectionTitle}>Account</Text>
         <TouchableOpacity
@@ -444,4 +450,53 @@ const styles = StyleSheet.create({
   trophyIconLocked: { backgroundColor: theme.border },
   trophyName: { color: theme.text, fontSize: 11, textAlign: "center", fontWeight: "600" },
   trophyNameLocked: { color: theme.textMuted },
+  notifCard: {
+    backgroundColor: theme.surface,
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  notifHead: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 },
+  notifIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: theme.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  slotsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 14 },
+  slotChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: theme.border,
+    backgroundColor: theme.bg,
+  },
+  slotChipOn: { borderColor: theme.primary, backgroundColor: "rgba(212,175,55,0.15)" },
+  slotText: { color: theme.textMuted, fontSize: 13, fontWeight: "700", letterSpacing: 0.5 },
+  slotTextOn: { color: theme.primary },
+  notifBtnRow: { flexDirection: "row", gap: 10 },
+  notifBtn: {
+    flex: 1,
+    backgroundColor: theme.primary,
+    paddingVertical: 12,
+    borderRadius: 999,
+    alignItems: "center",
+  },
+  notifBtnText: { color: theme.bg, fontWeight: "700", fontSize: 14, letterSpacing: 0.3 },
+  notifBtnGhost: { backgroundColor: "transparent", borderWidth: 1, borderColor: theme.border },
+  notifBtnGhostText: { color: theme.text, fontWeight: "600", fontSize: 14 },
+  notifBtnSmall: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  notifBtnSmallText: { color: theme.primary, fontWeight: "600", fontSize: 13 },
 });

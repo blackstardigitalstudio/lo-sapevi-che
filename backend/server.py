@@ -295,13 +295,13 @@ async def on_startup():
         except Exception as e:
             logger.warning(f"Incremental seed skipped: {e}")
 
-    # Migration: re-assign per-fact varied images using image_library
+    # Migration: re-assign per-fact varied images using image_library (with sub_category awareness)
     try:
-        cursor = db.facts.find({}, {"_id": 0, "id": 1, "title": 1, "category": 1})
+        cursor = db.facts.find({}, {"_id": 0, "id": 1, "title": 1, "category": 1, "sub_category": 1})
         facts = await cursor.to_list(100000)
         updates = 0
         for f in facts:
-            new_url = image_for_fact(f["category"], f["title"])
+            new_url = image_for_fact(f["category"], f["title"], f.get("sub_category"))
             await db.facts.update_one({"id": f["id"]}, {"$set": {"image_url": new_url}})
             updates += 1
         if updates:
@@ -525,25 +525,35 @@ async def feed(limit: int = 20, user=Depends(current_user)):
     seen = set(user.get("seen_ids", []))
     disliked = set(user.get("disliked_ids", []))
     exclude = seen | disliked
-    cursor = db.facts.find({"id": {"$nin": list(exclude)}}, {"_id": 0}).limit(400)
+
+    interests = user.get("interests", []) or []
+    base_query: Dict[str, Any] = {"id": {"$nin": list(exclude)}}
+    # STRICT filter: if user selected categories, return ONLY those
+    if interests:
+        base_query["category"] = {"$in": interests}
+
+    cursor = db.facts.find(base_query, {"_id": 0}).limit(400)
     candidates = await cursor.to_list(400)
+
     if not candidates:
-        cursor = db.facts.find({"id": {"$nin": list(disliked)}}, {"_id": 0}).limit(400)
+        # Fallback: allow seen (but not disliked) within same strict filter
+        fallback_query: Dict[str, Any] = {"id": {"$nin": list(disliked)}}
+        if interests:
+            fallback_query["category"] = {"$in": interests}
+        cursor = db.facts.find(fallback_query, {"_id": 0}).limit(400)
         candidates = await cursor.to_list(400)
 
-    # Apply sub_interests filter: for categories with a non-empty preference list,
-    # keep only facts whose sub_category is in the user's selected subs (facts
-    # with no sub_category are kept as 'general')
+    # Apply sub_interests filter
     sub_interests = user.get("sub_interests", {}) or {}
     if sub_interests:
         def keep(f):
             cat = f["category"]
             prefs = sub_interests.get(cat)
             if not prefs:
-                return True  # no filter for this category
+                return True
             sub = f.get("sub_category")
             if not sub:
-                return True  # general fact for that category
+                return True
             return sub in prefs
         candidates = [f for f in candidates if keep(f)]
 
@@ -705,7 +715,7 @@ async def generate_new_fact(data: GenerateIn, user=Depends(current_user)):
     if not ai:
         raise HTTPException(503, "Generazione AI non disponibile. Riprova.")
 
-    img_url = image_for_fact(category, ai["title"])
+    img_url = image_for_fact(category, ai["title"], None)
     doc = {
         "id": str(uuid.uuid4()),
         "title": ai["title"],
@@ -713,6 +723,7 @@ async def generate_new_fact(data: GenerateIn, user=Depends(current_user)):
         "deep_dive": ai["deep_dive"],
         "sources": ai.get("sources", []),
         "category": category,
+        "sub_category": None,
         "image_url": img_url,
         "source": "ai",
         "created_at": datetime.now(timezone.utc),
@@ -738,7 +749,7 @@ async def bulk_generate_facts(data: BulkGenerateIn, user=Depends(current_user)):
         ai = await generate_fact_ai(cat)
         if not ai:
             continue
-        img_url = image_for_fact(cat, ai["title"])
+        img_url = image_for_fact(cat, ai["title"], None)
         doc = {
             "id": str(uuid.uuid4()),
             "title": ai["title"],
@@ -746,6 +757,7 @@ async def bulk_generate_facts(data: BulkGenerateIn, user=Depends(current_user)):
             "deep_dive": ai["deep_dive"],
             "sources": ai.get("sources", []),
             "category": cat,
+            "sub_category": None,
             "image_url": img_url,
             "source": "ai",
             "created_at": datetime.now(timezone.utc),

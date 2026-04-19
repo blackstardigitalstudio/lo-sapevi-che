@@ -202,13 +202,140 @@ CATEGORY_IMAGES = {
     ],
 }
 
+
+# ==========================================================
+# SUB-CATEGORY specific images (brands, themes)
+# ==========================================================
+SUBCATEGORY_IMAGES = {
+    # ---- Moto brands ----
+    "Vespa": [
+        _u("photo-1558618047-3c8c76ca7d13"),  # vespa classic
+        _u("photo-1593055497722-ff9ca9b6a4e4"),  # vespa italy
+        _u("photo-1605186716104-ad9e39d3a35e"),  # vespa red
+        _u("photo-1597006519603-0cbcd0f88a15"),  # vespa side
+    ],
+    "Ducati": [
+        _u("photo-1558981806-ec527fa84c39"),  # ducati red
+        _u("photo-1568772585407-9361f9bf3a87"),  # red sport bike
+        _u("photo-1571068316344-75bc76f77890"),  # sport bike
+        _u("photo-1568935055640-a5e8cdbb8fbe"),  # red moto
+    ],
+    "Harley-Davidson": [
+        _u("photo-1568772585407-9361f9bf3a87"),  # dark cruiser
+        _u("photo-1449426468159-d96dbf08f19f"),  # classic cruiser
+        _u("photo-1609630875171-b1321377ee3b"),  # vintage american
+        _u("photo-1600706432502-77a0e2e32771"),  # chopper
+    ],
+    "Yamaha": [
+        _u("photo-1568935055640-a5e8cdbb8fbe"),
+        _u("photo-1558981806-ec527fa84c39"),
+        _u("photo-1571068316344-75bc76f77890"),
+    ],
+    "Honda": [
+        _u("photo-1558981001-5864b3250a69"),
+        _u("photo-1568772585407-9361f9bf3a87"),
+    ],
+    "MV Agusta": [
+        _u("photo-1558981806-ec527fa84c39"),
+        _u("photo-1568935055640-a5e8cdbb8fbe"),
+    ],
+    # ---- Auto brands ----
+    "Ferrari": [
+        _u("photo-1552519507-da3b142c6e3d"),  # red ferrari
+        _u("photo-1503376780353-7e6692767b70"),  # sports car red
+        _u("photo-1583121274602-3e2820c69888"),  # ferrari classic
+        _u("photo-1600712242805-5f78671b24da"),  # red supercar
+    ],
+    "Lamborghini": [
+        _u("photo-1544829099-b9a0c5303bea"),  # lamborghini
+        _u("photo-1626668893632-6f3a4466d109"),  # supercar orange
+        _u("photo-1621135802920-133df287f89c"),  # yellow supercar
+        _u("photo-1606664515524-ed2f786a0bd6"),  # huracan
+    ],
+    "Porsche": [
+        _u("photo-1511919884226-fd3cad34687c"),  # porsche
+        _u("photo-1503376780353-7e6692767b70"),
+        _u("photo-1580273916550-e323be2ae537"),  # 911
+        _u("photo-1625230442810-39e2d0bac9b1"),  # porsche silver
+    ],
+    "Tesla": [
+        _u("photo-1560958089-b8a1929cea89"),  # tesla
+        _u("photo-1617788138017-80ad40651399"),  # tesla model
+        _u("photo-1551830820-330a71b99659"),  # tesla red
+        _u("photo-1617814065893-00757125efab"),  # tesla interior
+    ],
+    "Fiat": [
+        _u("photo-1541443131876-44b03de101c5"),  # fiat 500 vintage
+        _u("photo-1554744512-d6c603f27c54"),  # small car italy
+        _u("photo-1588636142475-a62d56692870"),  # fiat 500 new
+        _u("photo-1606220945770-b5b6c2c55bf1"),  # fiat city
+    ],
+    "BMW": [
+        _u("photo-1555215695-3004980ad54e"),  # bmw
+        _u("photo-1617531653332-bd46c24f2068"),  # bmw m
+        _u("photo-1580274455191-1c62238fa333"),  # bmw gran
+    ],
+    "Mercedes": [
+        _u("photo-1618843479313-40f8afb4b4d8"),  # mercedes amg
+        _u("photo-1617531653332-bd46c24f2068"),
+        _u("photo-1563720223185-11003d516935"),  # mercedes
+    ],
+    "Alfa Romeo": [
+        _u("photo-1552519507-da3b142c6e3d"),
+        _u("photo-1503376780353-7e6692767b70"),
+        _u("photo-1583121274602-3e2820c69888"),
+    ],
+    "Maserati": [
+        _u("photo-1552519507-da3b142c6e3d"),
+        _u("photo-1503376780353-7e6692767b70"),
+    ],
+    "Bugatti": [
+        _u("photo-1580273916550-e323be2ae537"),
+        _u("photo-1544829099-b9a0c5303bea"),
+    ],
+    "Aston Martin": [
+        _u("photo-1511919884226-fd3cad34687c"),
+        _u("photo-1580273916550-e323be2ae537"),
+    ],
+    "Rolls-Royce": [
+        _u("photo-1563720223185-11003d516935"),
+        _u("photo-1618843479313-40f8afb4b4d8"),
+    ],
+    # ---- Motori sub-themes ----
+    "Formula 1": [
+        _u("photo-1519925610903-381054cc2a1c"),  # f1
+        _u("photo-1600712242805-5f78671b24da"),
+        _u("photo-1599819811279-d5ad9cccf838"),  # f1 track
+    ],
+    "MotoGP": [
+        _u("photo-1568772585407-9361f9bf3a87"),
+        _u("photo-1558981806-ec527fa84c39"),
+        _u("photo-1571068316344-75bc76f77890"),
+    ],
+    "Rally": [
+        _u("photo-1493238792000-8113da705763"),
+        _u("photo-1580273916550-e323be2ae537"),
+    ],
+    "Auto d'epoca": [
+        _u("photo-1505761671935-60b3a7427bad"),  # classic car
+        _u("photo-1542282088-fe8426682b8f"),
+        _u("photo-1494976388531-d1058494cdd8"),
+    ],
+}
+
 # Fallback for any missing category
 _FALLBACK = CATEGORY_IMAGES["Spazio"]
 
 
-def image_for_fact(category: str, seed: str) -> str:
-    """Deterministically pick an image for a fact based on hash of its seed (e.g. title)."""
-    pool: List[str] = CATEGORY_IMAGES.get(category, _FALLBACK)
+def image_for_fact(category: str, seed: str, sub_category: str = None) -> str:
+    """Deterministically pick an image for a fact.
+    Prefers sub-category specific pool (e.g. Vespa, Ferrari) when available,
+    falls back to the category pool otherwise.
+    """
+    if sub_category and sub_category in SUBCATEGORY_IMAGES:
+        pool = SUBCATEGORY_IMAGES[sub_category]
+    else:
+        pool = CATEGORY_IMAGES.get(category, _FALLBACK)
     if not pool:
         pool = _FALLBACK
     h = int(hashlib.md5(str(seed).encode("utf-8")).hexdigest()[:8], 16)
