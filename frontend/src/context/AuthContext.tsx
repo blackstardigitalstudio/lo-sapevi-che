@@ -7,6 +7,7 @@ type User = {
   name: string;
   interests: string[];
   interest_weights: Record<string, number>;
+  sub_interests?: Record<string, string[]>;
   stats: { liked: number; disliked: number; bookmarked: number; seen: number };
   streak_days?: number;
   best_streak?: number;

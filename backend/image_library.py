@@ -164,6 +164,42 @@ CATEGORY_IMAGES = {
         _u("photo-1517760444937-f6397edcbbcd"),  # passport
         _u("photo-1503220317375-aaad61436b1b"),  # backpack travel
     ],
+    "Mafia": [
+        _u("photo-1507679799987-c73779587ccf"),  # suit man shadow
+        _u("photo-1519415943484-9fa1873496d4"),  # cigar dark
+        _u("photo-1568214379698-8aeb8c6c6ac8"),  # vintage car dark
+        _u("photo-1461151304267-38535e780c79"),  # noir alley
+        _u("photo-1497215842964-222b430dc094"),  # old typewriter
+    ],
+    "Guerre": [
+        _u("photo-1526803150637-f3705c1b7da4"),  # soldier silhouette
+        _u("photo-1541516160071-4bb0c5af65ba"),  # tank
+        _u("photo-1516575355023-c28313324ca9"),  # military
+        _u("photo-1530260626-82b39f5cca29"),     # old war photo
+        _u("photo-1506806732259-39c2d0268443"),  # memorial
+    ],
+    "Motori": [
+        _u("photo-1503376780353-7e6692767b70"),  # sports car
+        _u("photo-1519925610903-381054cc2a1c"),  # formula 1
+        _u("photo-1493238792000-8113da705763"),  # race track
+        _u("photo-1571068316344-75bc76f77890"),  # motorcycle
+        _u("photo-1505761671935-60b3a7427bad"),  # classic car
+    ],
+    "Macchine": [
+        _u("photo-1503376780353-7e6692767b70"),  # sports car red
+        _u("photo-1552519507-da3b142c6e3d"),     # ferrari like
+        _u("photo-1544829099-b9a0c5303bea"),     # lamborghini
+        _u("photo-1542282088-fe8426682b8f"),     # classic
+        _u("photo-1511919884226-fd3cad34687c"),  # porsche
+        _u("photo-1494976388531-d1058494cdd8"),  # muscle car
+    ],
+    "Moto": [
+        _u("photo-1568772585407-9361f9bf3a87"),  # motorcycle
+        _u("photo-1558981806-ec527fa84c39"),     # ducati red
+        _u("photo-1547549082-6bc09f2049ae"),     # rider sunset
+        _u("photo-1558981001-5864b3250a69"),     # vintage moto
+        _u("photo-1571068316344-75bc76f77890"),  # sport bike
+    ],
 }
 
 # Fallback for any missing category

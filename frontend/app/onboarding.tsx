@@ -23,27 +23,70 @@ type Preview = {
   image_url: string;
 };
 
+type CategoryInfo = {
+  name: string;
+  icon: string;
+  has_subcategories: boolean;
+  subcategories: string[];
+};
+
 export default function Onboarding() {
   const router = useRouter();
   const { user, refresh } = useAuth();
   const [previews, setPreviews] = useState<Preview[]>([]);
+  const [catInfo, setCatInfo] = useState<Record<string, CategoryInfo>>({});
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set(user?.interests || []));
+  const [subInterests, setSubInterests] = useState<Record<string, Set<string>>>(() => {
+    const initial: Record<string, Set<string>> = {};
+    if (user?.sub_interests) {
+      Object.entries(user.sub_interests).forEach(([k, v]) => {
+        initial[k] = new Set(v as string[]);
+      });
+    }
+    return initial;
+  });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    api
-      .preview()
-      .then(setPreviews)
+    Promise.all([api.preview(), api.categories()])
+      .then(([pv, cats]) => {
+        setPreviews(pv);
+        const info: Record<string, CategoryInfo> = {};
+        (cats as CategoryInfo[]).forEach((c) => {
+          info[c.name] = c;
+        });
+        setCatInfo(info);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
-  const toggle = (name: string) => {
+  const toggleCategory = (name: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
+      if (next.has(name)) {
+        next.delete(name);
+        // Also clear sub_interests for this category
+        setSubInterests((si) => {
+          const n = { ...si };
+          delete n[name];
+          return n;
+        });
+      } else {
+        next.add(name);
+      }
+      return next;
+    });
+  };
+
+  const toggleSub = (cat: string, sub: string) => {
+    setSubInterests((prev) => {
+      const next = { ...prev };
+      const cur = new Set(next[cat] || []);
+      if (cur.has(sub)) cur.delete(sub);
+      else cur.add(sub);
+      next[cat] = cur;
       return next;
     });
   };
@@ -53,6 +96,13 @@ export default function Onboarding() {
     setSaving(true);
     try {
       await api.updateInterests(Array.from(selected));
+      const subPayload: Record<string, string[]> = {};
+      Object.keys(subInterests).forEach((cat) => {
+        if (selected.has(cat)) {
+          subPayload[cat] = Array.from(subInterests[cat]);
+        }
+      });
+      await api.updateSubInterests(subPayload);
       await refresh();
       router.replace("/(tabs)/feed");
     } catch {
@@ -69,30 +119,33 @@ export default function Onboarding() {
     );
   }
 
+  // Selected categories that have subcategories → show drill-down below
+  const drillDownCategories = Array.from(selected).filter(
+    (c) => catInfo[c]?.has_subcategories,
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]} testID="onboarding-screen">
       <View style={styles.header}>
         <Text style={styles.greet}>Ciao {user?.name} 👋</Text>
         <Text style={styles.title}>Cosa ti affascina?</Text>
         <Text style={styles.subtitle}>
-          Tocca le card per scegliere almeno 3 nicchie. Personalizzeremo il tuo feed con curiosità su misura.
+          Scegli almeno 3 nicchie. Per alcune puoi anche scegliere marche o sotto-temi.
         </Text>
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.grid}>
           {previews.map((p) => {
             const on = selected.has(p.category);
+            const hasSubs = catInfo[p.category]?.has_subcategories;
             return (
               <TouchableOpacity
                 key={p.category}
                 testID={`chip-${p.category}`}
                 activeOpacity={0.85}
                 style={[styles.card, on && styles.cardOn]}
-                onPress={() => toggle(p.category)}
+                onPress={() => toggleCategory(p.category)}
               >
                 <ImageBackground source={{ uri: p.image_url }} style={styles.cardBg}>
                   <LinearGradient
@@ -112,12 +165,74 @@ export default function Onboarding() {
                     <Text style={styles.sampleTitle} numberOfLines={3}>
                       {p.sample_title}
                     </Text>
+                    {hasSubs && (
+                      <View style={styles.filterHint}>
+                        <Ionicons name="options" size={10} color={theme.primary} />
+                        <Text style={styles.filterHintText}>con filtri</Text>
+                      </View>
+                    )}
                   </View>
                 </ImageBackground>
               </TouchableOpacity>
             );
           })}
         </View>
+
+        {drillDownCategories.length > 0 && (
+          <View style={styles.drillWrap} testID="drilldown-section">
+            <Text style={styles.drillTitle}>Affina i tuoi gusti</Text>
+            <Text style={styles.drillSubtitle}>
+              Lascia vuoto per vedere tutto, oppure scegli i preferiti
+            </Text>
+
+            {drillDownCategories.map((cat) => {
+              const subs = catInfo[cat]?.subcategories || [];
+              const picked = subInterests[cat] || new Set();
+              const allMode = picked.size === 0;
+              return (
+                <View key={cat} style={styles.drillBlock}>
+                  <Text style={styles.drillCatName}>
+                    <Ionicons name={catInfo[cat]?.icon as any} size={14} color={theme.primary} />
+                    {"  "}
+                    {cat}
+                  </Text>
+                  <View style={styles.subChipsRow}>
+                    <TouchableOpacity
+                      testID={`sub-${cat}-all`}
+                      style={[styles.subChip, allMode && styles.subChipOn]}
+                      onPress={() =>
+                        setSubInterests((p) => {
+                          const n = { ...p };
+                          delete n[cat];
+                          return n;
+                        })
+                      }
+                    >
+                      <Text style={[styles.subChipText, allMode && styles.subChipTextOn]}>
+                        Tutti
+                      </Text>
+                    </TouchableOpacity>
+                    {subs.map((s) => {
+                      const on = picked.has(s);
+                      return (
+                        <TouchableOpacity
+                          key={s}
+                          testID={`sub-${cat}-${s}`}
+                          style={[styles.subChip, on && styles.subChipOn]}
+                          onPress={() => toggleSub(cat, s)}
+                        >
+                          <Text style={[styles.subChipText, on && styles.subChipTextOn]}>
+                            {s}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
       </ScrollView>
 
       <View style={styles.bottom}>
@@ -170,10 +285,45 @@ const styles = StyleSheet.create({
     backgroundColor: theme.primary,
     alignItems: "center",
     justifyContent: "center",
-    opacity: 1,
   },
   sampleKicker: { color: theme.primary, fontSize: 9, letterSpacing: 1.5, textTransform: "uppercase", fontStyle: "italic" },
   sampleTitle: { color: theme.text, fontSize: 12, lineHeight: 16, fontWeight: "400", fontStyle: "italic" },
+  filterHint: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 999,
+    backgroundColor: "rgba(212,175,55,0.2)",
+    alignSelf: "flex-start",
+  },
+  filterHintText: { color: theme.primary, fontSize: 9, fontWeight: "700", letterSpacing: 0.5 },
+  drillWrap: {
+    marginTop: 16,
+    padding: 18,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: theme.primary,
+    backgroundColor: theme.surface,
+  },
+  drillTitle: { color: theme.primary, fontSize: 13, letterSpacing: 2, fontWeight: "700", marginBottom: 4 },
+  drillSubtitle: { color: theme.textMuted, fontSize: 12, marginBottom: 14 },
+  drillBlock: { marginTop: 14 },
+  drillCatName: { color: theme.text, fontSize: 14, fontWeight: "600", marginBottom: 8 },
+  subChipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  subChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: theme.border,
+    backgroundColor: "transparent",
+  },
+  subChipOn: { backgroundColor: theme.primary, borderColor: theme.primary },
+  subChipText: { color: theme.textMuted, fontSize: 12, fontWeight: "500" },
+  subChipTextOn: { color: theme.bg, fontWeight: "700" },
   bottom: { padding: 20, borderTopWidth: 1, borderTopColor: theme.border, backgroundColor: theme.surface },
   counter: { color: theme.textMuted, textAlign: "center", marginBottom: 12, fontSize: 13 },
   cta: { backgroundColor: theme.primary, borderRadius: 999, paddingVertical: 16, alignItems: "center" },

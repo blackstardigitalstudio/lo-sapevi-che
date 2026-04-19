@@ -51,6 +51,9 @@ export const api = {
   setPushToken: (token: string) =>
     request("/auth/push-token", { method: "POST", body: JSON.stringify({ token }) }),
   categories: () => request("/categories"),
+  subcategories: (category: string) => request(`/subcategories/${encodeURIComponent(category)}`),
+  updateSubInterests: (sub_interests: Record<string, string[]>) =>
+    request("/auth/sub-interests", { method: "POST", body: JSON.stringify({ sub_interests }) }),
   feed: (limit = 20) => request(`/feed?limit=${limit}`),
   markSeen: (factId: string) => request(`/facts/${factId}/seen`, { method: "POST" }),
   react: (factId: string, action: "like" | "dislike") =>

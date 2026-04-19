@@ -34,8 +34,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr, Field
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from seed_facts import SEED_FACTS, CATEGORIES, CATEGORY_EMOJI, CATEGORY_IMAGE_GROUP, IMAGE_URLS
+from seed_facts import SEED_FACTS, CATEGORIES, CATEGORY_EMOJI, CATEGORY_IMAGE_GROUP, IMAGE_URLS, SUB_CATEGORIES
 from seed_facts_extra import EXTRA_FACTS
+from seed_facts_v3 import V3_FACTS
 from image_library import image_for_fact, first_image_for_category
 
 # ==========================================================
@@ -132,6 +133,10 @@ class UpdateInterestsIn(BaseModel):
     interests: List[str]
 
 
+class UpdateSubInterestsIn(BaseModel):
+    sub_interests: Dict[str, List[str]]
+
+
 class ReactIn(BaseModel):
     action: str  # "like" | "dislike"
 
@@ -176,6 +181,7 @@ def user_to_public(u: Dict[str, Any]) -> Dict[str, Any]:
         "name": u["name"],
         "interests": u.get("interests", []),
         "interest_weights": u.get("interest_weights", {}),
+        "sub_interests": u.get("sub_interests", {}),
         "stats": {
             "liked": len(u.get("liked_ids", [])),
             "disliked": len(u.get("disliked_ids", [])),
@@ -245,7 +251,7 @@ async def on_startup():
     if count == 0:
         logger.info("Seeding facts database...")
         docs = []
-        all_seed = SEED_FACTS + EXTRA_FACTS
+        all_seed = SEED_FACTS + EXTRA_FACTS + V3_FACTS
         for f in all_seed:
             docs.append({
                 "id": str(uuid.uuid4()),
@@ -253,6 +259,7 @@ async def on_startup():
                 "short_fact": f["short_fact"],
                 "deep_dive": f["deep_dive"],
                 "category": f["category"],
+                "sub_category": f.get("sub_category"),
                 "image_url": f["image_url"],
                 "source": f.get("source", "seed"),
                 "sources": f.get("sources", []),
@@ -262,13 +269,13 @@ async def on_startup():
             await db.facts.insert_many(docs)
             logger.info(f"Inserted {len(docs)} seed facts.")
     else:
-        # Incremental seed: add any new EXTRA_FACTS not present yet (by title)
+        # Incremental seed
         try:
             titles_in_db = set(
                 f["title"] for f in await db.facts.find({}, {"_id": 0, "title": 1}).to_list(10000)
             )
             new_docs = []
-            for f in SEED_FACTS + EXTRA_FACTS:
+            for f in SEED_FACTS + EXTRA_FACTS + V3_FACTS:
                 if f["title"] not in titles_in_db:
                     new_docs.append({
                         "id": str(uuid.uuid4()),
@@ -276,6 +283,7 @@ async def on_startup():
                         "short_fact": f["short_fact"],
                         "deep_dive": f["deep_dive"],
                         "category": f["category"],
+                        "sub_category": f.get("sub_category"),
                         "image_url": f["image_url"],
                         "source": f.get("source", "seed"),
                         "sources": f.get("sources", []),
@@ -326,6 +334,7 @@ async def register(data: RegisterIn):
         "password_hash": hash_password(data.password),
         "interests": data.interests,
         "interest_weights": weights,
+        "sub_interests": {},
         "liked_ids": [],
         "disliked_ids": [],
         "bookmarked_ids": [],
@@ -427,9 +436,37 @@ async def daily_checkin(user=Depends(current_user)):
 @api.get("/categories")
 async def list_categories():
     return [
-        {"name": c, "icon": CATEGORY_EMOJI.get(c, "sparkles")}
+        {
+            "name": c,
+            "icon": CATEGORY_EMOJI.get(c, "sparkles"),
+            "has_subcategories": c in SUB_CATEGORIES,
+            "subcategories": SUB_CATEGORIES.get(c, []),
+        }
         for c in CATEGORIES
     ]
+
+
+@api.get("/subcategories/{category}")
+async def list_subcategories(category: str):
+    if category not in CATEGORIES:
+        raise HTTPException(404, "Categoria non trovata")
+    return {"category": category, "subcategories": SUB_CATEGORIES.get(category, [])}
+
+
+@api.post("/auth/sub-interests")
+async def update_sub_interests(data: UpdateSubInterestsIn, user=Depends(current_user)):
+    # Sanitize: keep only valid categories and their valid sub-cats
+    clean: Dict[str, List[str]] = {}
+    for cat, subs in data.sub_interests.items():
+        if cat in SUB_CATEGORIES:
+            valid = [s for s in subs if s in SUB_CATEGORIES[cat]]
+            clean[cat] = valid
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"sub_interests": clean}},
+    )
+    updated = await db.users.find_one({"id": user["id"]}, {"_id": 0})
+    return user_to_public(updated)
 
 
 @api.get("/preview")
@@ -488,11 +525,28 @@ async def feed(limit: int = 20, user=Depends(current_user)):
     seen = set(user.get("seen_ids", []))
     disliked = set(user.get("disliked_ids", []))
     exclude = seen | disliked
-    cursor = db.facts.find({"id": {"$nin": list(exclude)}}, {"_id": 0}).limit(300)
-    candidates = await cursor.to_list(300)
+    cursor = db.facts.find({"id": {"$nin": list(exclude)}}, {"_id": 0}).limit(400)
+    candidates = await cursor.to_list(400)
     if not candidates:
-        cursor = db.facts.find({"id": {"$nin": list(disliked)}}, {"_id": 0}).limit(300)
-        candidates = await cursor.to_list(300)
+        cursor = db.facts.find({"id": {"$nin": list(disliked)}}, {"_id": 0}).limit(400)
+        candidates = await cursor.to_list(400)
+
+    # Apply sub_interests filter: for categories with a non-empty preference list,
+    # keep only facts whose sub_category is in the user's selected subs (facts
+    # with no sub_category are kept as 'general')
+    sub_interests = user.get("sub_interests", {}) or {}
+    if sub_interests:
+        def keep(f):
+            cat = f["category"]
+            prefs = sub_interests.get(cat)
+            if not prefs:
+                return True  # no filter for this category
+            sub = f.get("sub_category")
+            if not sub:
+                return True  # general fact for that category
+            return sub in prefs
+        candidates = [f for f in candidates if keep(f)]
+
     picked = pick_weighted(user, candidates, limit)
     return {"facts": picked}
 

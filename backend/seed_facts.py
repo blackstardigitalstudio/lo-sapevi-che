@@ -6,6 +6,7 @@ CATEGORIES = [
     "Cucina", "Sport", "Arte", "Psicologia", "Cinema",
     "Musica", "Geografia", "Medicina", "Filosofia", "Economia",
     "Letteratura", "Animali", "Matematica", "Viaggi", "Mitologia",
+    "Mafia", "Guerre", "Motori", "Macchine", "Moto",
 ]
 
 CATEGORY_EMOJI = {
@@ -29,6 +30,20 @@ CATEGORY_EMOJI = {
     "Matematica": "calculator",
     "Viaggi": "airplane",
     "Mitologia": "flash",
+    "Mafia": "skull",
+    "Guerre": "shield",
+    "Motori": "speedometer",
+    "Macchine": "car-sport",
+    "Moto": "bicycle",
+}
+
+# Categories that have sub-categories (brands, sub-themes)
+SUB_CATEGORIES = {
+    "Macchine": ["Ferrari", "Lamborghini", "Porsche", "Fiat", "BMW", "Mercedes", "Tesla", "Alfa Romeo", "Maserati", "Bugatti", "Aston Martin", "Rolls-Royce"],
+    "Moto": ["Ducati", "Harley-Davidson", "Yamaha", "Honda", "Kawasaki", "Aprilia", "MV Agusta", "BMW Motorrad", "Vespa", "Triumph"],
+    "Motori": ["Formula 1", "MotoGP", "Rally", "Le Mans", "NASCAR", "Motori elettrici", "Auto d'epoca"],
+    "Guerre": ["Prima guerra mondiale", "Seconda guerra mondiale", "Guerra fredda", "Guerre napoleoniche", "Guerre antiche", "Guerre moderne", "Guerre medievali"],
+    "Mafia": ["Cosa Nostra", "Camorra", "'Ndrangheta", "Sacra Corona Unita", "Mafia americana", "Yakuza", "Cartelli messicani", "Triadi cinesi"],
 }
 
 # Image category mapping for cover

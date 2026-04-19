@@ -1,0 +1,67 @@
+{
+  "summary": "Sub-categories feature (V3) testing complete. Backend: 18/18 tests passed (100%). Frontend: All sub-category features working (25 categories, 'con filtri' labels, drill-down section, sub-chips, feed filtering). DB has 120 facts (19 new V3 facts with sub_category field). Feed filtering by sub_interests working correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_subcategories.py",
+    "/app/test_reports/pytest/pytest_subcategories.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "✅ GET /api/categories returns 25 categories (20 original + 5 new: Mafia, Guerre, Motori, Macchine, Moto)",
+    "✅ All categories have has_subcategories and subcategories fields",
+    "✅ 5 new categories have has_subcategories=true with non-empty subcategories arrays",
+    "✅ Mafia: 8 subcategories (Cosa Nostra, Camorra, 'Ndrangheta, etc.)",
+    "✅ Guerre: 7 subcategories (Prima guerra mondiale, Seconda guerra mondiale, Guerra fredda, Guerre napoleoniche, etc.)",
+    "✅ Motori: 7 subcategories (Formula 1, MotoGP, Rally, etc.)",
+    "✅ Macchine: 12 subcategories (Ferrari, Lamborghini, Porsche, Fiat, BMW, Mercedes, Tesla, etc.)",
+    "✅ Moto: 10 subcategories (Ducati, Harley-Davidson, Yamaha, Honda, Vespa, etc.)",
+    "✅ Original 20 categories have has_subcategories=false with empty subcategories arrays",
+    "✅ GET /api/subcategories/Macchine returns 12 brands",
+    "✅ GET /api/subcategories/Moto returns 10 brands",
+    "✅ GET /api/subcategories/Guerre returns 7 periods",
+    "✅ GET /api/subcategories/InvalidCategory returns 404",
+    "✅ GET /api/subcategories/Scienza (original category) returns empty array",
+    "✅ POST /api/auth/sub-interests saves sub_interests correctly",
+    "✅ Multiple brands can be saved for one category (e.g., Ferrari + Lamborghini)",
+    "✅ Multiple categories can have sub_interests (e.g., Macchine + Moto + Guerre)",
+    "✅ Invalid subcategories are filtered out (sanitization working)",
+    "✅ GET /api/auth/me returns sub_interests field",
+    "✅ Feed filtering by sub_interests works: user with {Macchine: ['Ferrari', 'Lamborghini'], Moto: ['Ducati']} gets only those brands",
+    "✅ Empty sub_interests returns all facts from selected categories (4 Macchine facts with brands: Ferrari, Lamborghini, Fiat, Tesla)",
+    "✅ All facts have sub_category field (16/16 new category facts have it populated)",
+    "✅ DB has 120 facts (19 new V3 facts added via incremental seed)",
+    "✅ Frontend: Onboarding shows 25 category cards (testID chip-{Category})",
+    "✅ Frontend: All 5 new categories show 'con filtri' label on card",
+    "✅ Frontend: Selecting drill-down category shows 'Affina i tuoi gusti' section (testID drilldown-section)",
+    "✅ Frontend: Sub-chips have correct testIDs (sub-{Category}-{Sub})",
+    "✅ Frontend: 'Tutti' chip present for each drill-down category (testID sub-{Category}-all)",
+    "✅ Frontend: Macchine sub-chips: Ferrari, Lamborghini, Tesla, Fiat all present",
+    "✅ Frontend: Moto sub-chips: Ducati, Harley-Davidson, Vespa all present",
+    "✅ Frontend: Sub-chips are clickable and selectable",
+    "✅ Frontend: 'Inizia l'avventura' button saves both interests and sub_interests",
+    "✅ Frontend: Navigation to feed screen works after onboarding",
+    "✅ Integration: Sub-interests saved via frontend are correctly stored in backend",
+    "✅ Integration: Feed filtering respects sub_interests (verified Ferrari-only filter works)"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_subcategories.py"
+  ],
+  "success_rate": {
+    "backend": "100% (18/18 tests passed)",
+    "frontend": "100% (all sub-category features working)"
+  },
+  "seed_data_creation": "Test users created during pytest: TEST_subint_*, TEST_multi_*, TEST_multicat_*, TEST_sanitize_*, TEST_me_*, TEST_feed_ferrari_*, TEST_feed_all_*. Frontend test user: test_onboard_139fd00c@test.com with interests: [Macchine, Moto, Scienza] and sub_interests: {Macchine: [Ferrari, Lamborghini], Moto: [Ducati]}.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Sub-categories feature (V3) fully functional. 5 new categories added (Mafia, Guerre, Motori, Macchine, Moto) with sub-category support. Backend API tested with pytest (18/18 passed). Frontend tested with Playwright (all flows working). Feed filtering by sub_interests working correctly (user with Ferrari+Lamborghini preference gets only those brands). DB has 120 facts total (101 original + 19 new V3 facts). All testIDs correctly implemented. No issues found. Feature ready for production.",
+  "rca_of_issue": "N/A - No issues found. All sub-category features working as designed."
+}
