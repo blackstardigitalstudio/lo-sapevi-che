@@ -18,6 +18,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api, theme } from "../../src/lib/api";
 import { useAuth } from "../../src/context/AuthContext";
 import { TrophyModal, Trophy } from "../../src/components/TrophyModal";
@@ -38,7 +39,8 @@ export default function Feed() {
   const router = useRouter();
   const { refresh: refreshUser } = useAuth();
   const { height: winH } = useWindowDimensions();
-  const TAB_BAR = 78;
+  const insets = useSafeAreaInsets();
+  const TAB_BAR = 62 + insets.bottom;
   const defaultH = Math.max(400, winH - TAB_BAR);
   const [facts, setFacts] = useState<Fact[]>([]);
   const [loading, setLoading] = useState(true);

@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api, theme } from "../../src/lib/api";
 import { TrophyModal, Trophy } from "../../src/components/TrophyModal";
 import { useAuth } from "../../src/context/AuthContext";
 
 export default function TabsLayout() {
   const { user, refresh } = useAuth();
+  const insets = useSafeAreaInsets();
   const [newTrophies, setNewTrophies] = useState<Trophy[]>([]);
 
   useEffect(() => {
@@ -31,9 +33,9 @@ export default function TabsLayout() {
             backgroundColor: theme.surface,
             borderTopColor: theme.border,
             borderTopWidth: 1,
-            height: 78,
+            height: 62 + insets.bottom,
             paddingTop: 8,
-            paddingBottom: 18,
+            paddingBottom: 8 + insets.bottom,
           },
           tabBarActiveTintColor: theme.primary,
           tabBarInactiveTintColor: theme.textMuted,
