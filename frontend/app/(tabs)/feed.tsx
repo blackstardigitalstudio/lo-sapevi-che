@@ -11,6 +11,7 @@ import {
   Animated,
   RefreshControl,
   Share,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -36,12 +37,15 @@ type Fact = {
 export default function Feed() {
   const router = useRouter();
   const { refresh: refreshUser } = useAuth();
+  const { height: winH } = useWindowDimensions();
+  const TAB_BAR = 78;
+  const defaultH = Math.max(400, winH - TAB_BAR);
   const [facts, setFacts] = useState<Fact[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [liked, setLiked] = useState<Set<string>>(new Set());
   const [bookmarked, setBookmarked] = useState<Set<string>>(new Set());
-  const [cardHeight, setCardHeight] = useState(height);
+  const [cardHeight, setCardHeight] = useState(defaultH);
   const [generating, setGenerating] = useState(false);
   const [newTrophies, setNewTrophies] = useState<Trophy[]>([]);
 
@@ -155,7 +159,14 @@ export default function Feed() {
   }
 
   return (
-    <View style={styles.container} testID="feed-screen">
+    <View
+      style={styles.container}
+      testID="feed-screen"
+      onLayout={(e) => {
+        const h = e.nativeEvent.layout.height;
+        if (h > 0 && Math.abs(h - cardHeight) > 1) setCardHeight(h);
+      }}
+    >
       <FlatList
         data={facts}
         keyExtractor={(it) => it.id}
@@ -163,8 +174,14 @@ export default function Feed() {
         pagingEnabled
         showsVerticalScrollIndicator={false}
         snapToInterval={cardHeight}
+        snapToAlignment="start"
         decelerationRate="fast"
-        onLayout={(e) => setCardHeight(e.nativeEvent.layout.height)}
+        disableIntervalMomentum
+        getItemLayout={(_, index) => ({
+          length: cardHeight,
+          offset: cardHeight * index,
+          index,
+        })}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -176,7 +193,9 @@ export default function Feed() {
           <View style={[styles.empty, { height: cardHeight }]}>
             <Ionicons name="sparkles-outline" size={48} color={theme.primary} />
             <Text style={styles.emptyTitle}>Hai letto tutto!</Text>
-            <Text style={styles.emptyText}>Tocca il pulsante ✨ per generare nuove curiosità con l'AI</Text>
+            <Text style={styles.emptyText}>
+              Tocca il pulsante ✨ per generare nuove curiosità con l'AI
+            </Text>
           </View>
         }
       />

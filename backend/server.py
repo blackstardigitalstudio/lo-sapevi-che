@@ -36,6 +36,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 from seed_facts import SEED_FACTS, CATEGORIES, CATEGORY_EMOJI, CATEGORY_IMAGE_GROUP, IMAGE_URLS
 from seed_facts_extra import EXTRA_FACTS
+from image_library import image_for_fact, first_image_for_category
 
 # ==========================================================
 # CONFIG
@@ -286,6 +287,20 @@ async def on_startup():
         except Exception as e:
             logger.warning(f"Incremental seed skipped: {e}")
 
+    # Migration: re-assign per-fact varied images using image_library
+    try:
+        cursor = db.facts.find({}, {"_id": 0, "id": 1, "title": 1, "category": 1})
+        facts = await cursor.to_list(100000)
+        updates = 0
+        for f in facts:
+            new_url = image_for_fact(f["category"], f["title"])
+            await db.facts.update_one({"id": f["id"]}, {"$set": {"image_url": new_url}})
+            updates += 1
+        if updates:
+            logger.info(f"Image migration: updated {updates} facts with varied images.")
+    except Exception as e:
+        logger.warning(f"Image migration skipped: {e}")
+
 
 @app.on_event("shutdown")
 async def on_shutdown():
@@ -439,7 +454,7 @@ async def preview_per_category():
                 "icon": CATEGORY_EMOJI.get(cat, "sparkles"),
                 "sample_title": cat,
                 "sample_short": "Scopri curiosità su " + cat.lower(),
-                "image_url": IMAGE_URLS.get(CATEGORY_IMAGE_GROUP.get(cat, "background_space")),
+                "image_url": first_image_for_category(cat),
             })
     return out
 
@@ -636,7 +651,7 @@ async def generate_new_fact(data: GenerateIn, user=Depends(current_user)):
     if not ai:
         raise HTTPException(503, "Generazione AI non disponibile. Riprova.")
 
-    img_group = CATEGORY_IMAGE_GROUP.get(category, "background_space")
+    img_url = image_for_fact(category, ai["title"])
     doc = {
         "id": str(uuid.uuid4()),
         "title": ai["title"],
@@ -644,7 +659,7 @@ async def generate_new_fact(data: GenerateIn, user=Depends(current_user)):
         "deep_dive": ai["deep_dive"],
         "sources": ai.get("sources", []),
         "category": category,
-        "image_url": IMAGE_URLS[img_group],
+        "image_url": img_url,
         "source": "ai",
         "created_at": datetime.now(timezone.utc),
     }
@@ -669,7 +684,7 @@ async def bulk_generate_facts(data: BulkGenerateIn, user=Depends(current_user)):
         ai = await generate_fact_ai(cat)
         if not ai:
             continue
-        img_group = CATEGORY_IMAGE_GROUP.get(cat, "background_space")
+        img_url = image_for_fact(cat, ai["title"])
         doc = {
             "id": str(uuid.uuid4()),
             "title": ai["title"],
@@ -677,7 +692,7 @@ async def bulk_generate_facts(data: BulkGenerateIn, user=Depends(current_user)):
             "deep_dive": ai["deep_dive"],
             "sources": ai.get("sources", []),
             "category": cat,
-            "image_url": IMAGE_URLS[img_group],
+            "image_url": img_url,
             "source": "ai",
             "created_at": datetime.now(timezone.utc),
         }
