@@ -45,10 +45,15 @@ export default function Login() {
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: theme.bg }}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={0}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.logoWrap}>
             <Ionicons name="sparkles" size={48} color={theme.primary} />
             <Text style={styles.brand} testID="brand-title">
@@ -116,7 +121,7 @@ export default function Login() {
 }
 
 const styles = StyleSheet.create({
-  scroll: { flexGrow: 1, padding: 24, justifyContent: "center", minHeight: "100%" },
+  scroll: { flexGrow: 1, padding: 24, paddingTop: 60, paddingBottom: 60 },
   logoWrap: { alignItems: "center", marginBottom: 40 },
   brand: {
     fontSize: 36,

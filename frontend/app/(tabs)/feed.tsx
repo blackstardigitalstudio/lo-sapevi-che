@@ -283,8 +283,8 @@ function DoubleTapCard({
     >
       <ImageBackground source={{ uri: fact.image_url }} style={styles.bg} resizeMode="cover">
         <LinearGradient
-          colors={["rgba(5,6,10,0.5)", "rgba(5,6,10,0.15)", "rgba(5,6,10,0.95)"]}
-          locations={[0, 0.45, 1]}
+          colors={["rgba(5,6,10,0.65)", "rgba(5,6,10,0.35)", "rgba(5,6,10,0.98)"]}
+          locations={[0, 0.35, 0.9]}
           style={StyleSheet.absoluteFillObject}
         />
 
@@ -311,6 +311,11 @@ function DoubleTapCard({
 
           {/* Bottom content */}
           <View style={styles.bottomContent}>
+            <LinearGradient
+              colors={["transparent", "rgba(5,6,10,0.95)"]}
+              style={StyleSheet.absoluteFillObject}
+              pointerEvents="none"
+            />
             <Text style={styles.kicker}>Lo sapevi che…</Text>
             <Text style={styles.title} numberOfLines={4}>
               {fact.title}
@@ -395,7 +400,15 @@ const styles = StyleSheet.create({
   pillAi: { borderColor: theme.primary },
   pillText: { color: theme.text, fontSize: 12, fontWeight: "600", letterSpacing: 0.5 },
   heartCenter: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" },
-  bottomContent: { marginBottom: 80 },
+  bottomContent: {
+    marginBottom: 80,
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
+    paddingTop: 40,
+    paddingBottom: 10,
+    position: "relative",
+    overflow: "hidden",
+  },
   kicker: {
     color: theme.primary,
     fontSize: 13,
@@ -412,8 +425,19 @@ const styles = StyleSheet.create({
     lineHeight: 38,
     letterSpacing: -0.3,
     marginBottom: 14,
+    textShadowColor: "rgba(0,0,0,0.85)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
   },
-  short: { color: theme.textMuted, fontSize: 15, lineHeight: 22, marginBottom: 20 },
+  short: {
+    color: theme.textMuted,
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 20,
+    textShadowColor: "rgba(0,0,0,0.85)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
   actions: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
   discoverBtn: {
     flexDirection: "row",

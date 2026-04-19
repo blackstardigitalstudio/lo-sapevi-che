@@ -9,7 +9,7 @@ import {
   ImageBackground,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../src/context/AuthContext";
@@ -33,6 +33,7 @@ type CategoryInfo = {
 export default function Onboarding() {
   const router = useRouter();
   const { user, refresh } = useAuth();
+  const insets = useSafeAreaInsets();
   const [previews, setPreviews] = useState<Preview[]>([]);
   const [catInfo, setCatInfo] = useState<Record<string, CategoryInfo>>({});
   const [loading, setLoading] = useState(true);
@@ -235,7 +236,7 @@ export default function Onboarding() {
         )}
       </ScrollView>
 
-      <View style={styles.bottom}>
+      <View style={[styles.bottom, { paddingBottom: 20 + insets.bottom }]}>
         <Text style={styles.counter}>
           {selected.size < 3
             ? `Seleziona almeno ${3 - selected.size} in più`
