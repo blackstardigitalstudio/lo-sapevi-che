@@ -17,24 +17,38 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { api, theme } from "../../src/lib/api";
 import { useAuth } from "../../src/context/AuthContext";
 import {
-  ensureDailyNotifications,
-  disableDailyNotifications,
-  areNotificationsActive,
-  NOTIFICATION_SLOTS,
+  scheduleNotifications,
+  disableNotifications,
+  getNotifState,
+  WINDOWS,
+  WindowKey,
+  NOTIF_PER_DAY,
+  SCHEDULE_DAYS,
 } from "../../src/lib/notifications";
 
 export default function Profile() {
   const router = useRouter();
   const { user, logout, refresh } = useAuth();
-  const [notifActive, setNotifActive] = useState<boolean>(true);
+  const [notifEnabled, setNotifEnabled] = useState<boolean>(true);
+  const [notifWindow, setNotifWindow] = useState<WindowKey>("sorpresa");
+  const [nextAt, setNextAt] = useState<string | undefined>(undefined);
+  const [scheduledCount, setScheduledCount] = useState<number>(0);
   const [busy, setBusy] = useState(false);
   const [trophies, setTrophies] = useState<any[]>([]);
+
+  const loadNotifState = async () => {
+    const s = await getNotifState();
+    setNotifEnabled(s.enabled);
+    setNotifWindow(s.window);
+    setNextAt(s.nextAt);
+    setScheduledCount(s.scheduledCount);
+  };
 
   useFocusEffect(
     useCallback(() => {
       refresh();
       api.trophies().then(setTrophies).catch(() => {});
-      areNotificationsActive().then(setNotifActive).catch(() => {});
+      loadNotifState();
     }, [])
   );
 
@@ -60,34 +74,41 @@ export default function Profile() {
     .sort(([, a], [, b]) => (b as number) - (a as number))
     .slice(0, 5);
 
-  const enablePush = async () => {
+  const onToggle = async () => {
     setBusy(true);
     try {
-      const res = await ensureDailyNotifications(true);
-      if (res === "granted") {
-        setNotifActive(true);
-        Alert.alert(
-          "Notifiche attive",
-          `Riceverai 4 curiosità al giorno:\n${NOTIFICATION_SLOTS.join(" · ")}`,
-        );
-      } else if (res === "simulator") {
-        Alert.alert("Dispositivo fisico richiesto", "Le notifiche funzionano solo su dispositivi reali.");
-      } else if (res === "denied") {
-        Alert.alert("Permesso negato", "Abilita le notifiche dalle impostazioni di sistema.");
+      if (notifEnabled) {
+        await disableNotifications();
+        setNotifEnabled(false);
+        setScheduledCount(0);
+        setNextAt(undefined);
       } else {
-        Alert.alert("Errore", "Impossibile attivare le notifiche.");
+        const res = await scheduleNotifications(notifWindow);
+        if (res.ok && res.state) {
+          setNotifEnabled(true);
+          setScheduledCount(res.state.scheduledCount);
+          setNextAt(res.state.nextAt);
+        } else if (res.reason === "denied") {
+          Alert.alert("Permesso negato", "Abilita le notifiche dalle impostazioni di sistema.");
+        } else if (res.reason === "simulator") {
+          Alert.alert("Dispositivo fisico richiesto", "Le notifiche funzionano solo su dispositivi reali.");
+        }
       }
     } finally {
       setBusy(false);
     }
   };
 
-  const disablePush = async () => {
+  const pickWindow = async (key: WindowKey) => {
     setBusy(true);
     try {
-      await disableDailyNotifications();
-      setNotifActive(false);
-      Alert.alert("Notifiche disattivate", "Non riceverai più promemoria giornalieri.");
+      const res = await scheduleNotifications(key);
+      if (res.ok && res.state) {
+        setNotifEnabled(true);
+        setNotifWindow(key);
+        setScheduledCount(res.state.scheduledCount);
+        setNextAt(res.state.nextAt);
+      }
     } finally {
       setBusy(false);
     }
@@ -106,6 +127,18 @@ export default function Profile() {
       Alert.alert("Prova inviata", "Riceverai la notifica tra 3 secondi.");
     } catch (e: any) {
       Alert.alert("Errore", e?.message || "Impossibile inviare");
+    }
+  };
+
+  const formatNextAt = (iso?: string) => {
+    if (!iso) return "—";
+    try {
+      const d = new Date(iso);
+      const date = d.toLocaleDateString("it-IT");
+      const time = d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      return `${date}, ${time}`;
+    } catch {
+      return iso;
     }
   };
 
@@ -189,74 +222,53 @@ export default function Profile() {
           })}
         </View>
 
-        <Text style={styles.sectionTitle}>Notifiche giornaliere</Text>
-        <View style={styles.notifCard}>
-          <View style={styles.notifHead}>
-            <View style={styles.notifIconWrap}>
-              <Ionicons
-                name={notifActive ? "notifications" : "notifications-off"}
-                size={20}
-                color={notifActive ? theme.bg : theme.textMuted}
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.actionTitle}>
-                {notifActive ? "Attive · 4 al giorno" : "Disattivate"}
-              </Text>
-              <Text style={styles.actionSubtitle}>
-                {notifActive
-                  ? "Ti ricorderemo una curiosità fresca in questi orari"
-                  : "Attivale per ricevere 4 promemoria al giorno"}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.slotsRow}>
-            {NOTIFICATION_SLOTS.map((t) => (
-              <View
-                key={t}
-                testID={`slot-${t}`}
-                style={[styles.slotChip, notifActive && styles.slotChipOn]}
-              >
-                <Text style={[styles.slotText, notifActive && styles.slotTextOn]}>{t}</Text>
-              </View>
-            ))}
-          </View>
-
-          <View style={styles.notifBtnRow}>
-            {notifActive ? (
-              <TouchableOpacity
-                testID="disable-push"
-                style={[styles.notifBtn, styles.notifBtnGhost]}
-                onPress={disablePush}
-                disabled={busy}
-              >
-                {busy ? (
-                  <ActivityIndicator color={theme.text} />
-                ) : (
-                  <Text style={styles.notifBtnGhostText}>Disattiva</Text>
-                )}
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                testID="enable-push"
-                style={styles.notifBtn}
-                onPress={enablePush}
-                disabled={busy}
-              >
-                {busy ? (
-                  <ActivityIndicator color={theme.bg} />
-                ) : (
-                  <Text style={styles.notifBtnText}>Attiva</Text>
-                )}
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity style={styles.notifBtnSmall} onPress={testPush} testID="test-push">
-              <Ionicons name="notifications-outline" size={16} color={theme.primary} />
-              <Text style={styles.notifBtnSmallText}>Prova</Text>
-            </TouchableOpacity>
-          </View>
+        <View style={styles.notifHeaderRow}>
+          <Text style={styles.sectionTitle}>Notifiche giornaliere</Text>
+          <TouchableOpacity
+            testID="notif-toggle"
+            onPress={onToggle}
+            disabled={busy}
+            style={[styles.toggle, notifEnabled && styles.toggleOn]}
+          >
+            <View style={[styles.toggleKnob, notifEnabled && styles.toggleKnobOn]} />
+          </TouchableOpacity>
         </View>
+        <Text style={styles.notifSubtitle}>
+          {NOTIF_PER_DAY} al giorno · orari casuali · {scheduledCount} programmate
+        </Text>
+
+        <Text style={styles.microLabel}>Finestra oraria (orari casuali ogni giorno)</Text>
+        <View style={styles.windowsGrid}>
+          {(Object.keys(WINDOWS) as WindowKey[]).map((k) => {
+            const w = WINDOWS[k];
+            const active = notifWindow === k && notifEnabled;
+            return (
+              <TouchableOpacity
+                key={k}
+                testID={`window-${k}`}
+                style={[styles.windowBtn, active && styles.windowBtnOn]}
+                onPress={() => pickWindow(k)}
+                disabled={busy}
+                activeOpacity={0.85}
+              >
+                <Ionicons name={w.icon as any} size={18} color={active ? theme.bg : theme.text} />
+                <Text style={[styles.windowText, active && styles.windowTextOn]}>{w.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {notifEnabled && (
+          <View style={styles.nextAtRow}>
+            <Ionicons name="notifications" size={14} color={theme.primary} />
+            <Text style={styles.nextAtText}>Prossima: {formatNextAt(nextAt)}</Text>
+          </View>
+        )}
+
+        <TouchableOpacity style={styles.ghostBtn} onPress={testPush} testID="test-push">
+          <Ionicons name="notifications-outline" size={16} color={theme.primary} />
+          <Text style={styles.ghostBtnText}>Prova (3 sec)</Text>
+        </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>Account</Text>
         <TouchableOpacity
@@ -499,4 +511,76 @@ const styles = StyleSheet.create({
     borderColor: theme.border,
   },
   notifBtnSmallText: { color: theme.primary, fontWeight: "600", fontSize: 13 },
+  notifHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 16,
+    marginBottom: 6,
+  },
+  toggle: {
+    width: 50,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: theme.border,
+    padding: 3,
+    justifyContent: "center",
+  },
+  toggleOn: { backgroundColor: theme.primary },
+  toggleKnob: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: "#fff",
+    transform: [{ translateX: 0 }],
+  },
+  toggleKnobOn: { transform: [{ translateX: 22 }] },
+  notifSubtitle: { color: theme.textMuted, fontSize: 13, marginBottom: 16 },
+  microLabel: {
+    color: theme.textMuted,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    fontWeight: "700",
+    marginBottom: 10,
+    textTransform: "uppercase",
+  },
+  windowsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 14,
+  },
+  windowBtn: {
+    width: "48%",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    backgroundColor: theme.surface,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  windowBtnOn: { backgroundColor: theme.primary, borderColor: theme.primary },
+  windowText: { color: theme.text, fontSize: 13, fontWeight: "600" },
+  windowTextOn: { color: theme.bg },
+  nextAtRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 12,
+  },
+  nextAtText: { color: theme.textMuted, fontSize: 12 },
+  ghostBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  ghostBtnText: { color: theme.primary, fontSize: 13, fontWeight: "600" },
 });

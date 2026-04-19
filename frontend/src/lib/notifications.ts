@@ -1,88 +1,180 @@
 /**
- * Auto-scheduling of 4 daily reminder notifications for Lo Sapevi che?
+ * Daily random notifications for Lo Sapevi che?
+ * User picks a time window; we schedule 4 notifications per day at random
+ * moments within that window.
  */
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const SCHEDULED_KEY = "@losapevi_notifs_scheduled_v2";
+const STATE_KEY = "@losapevi_notifs_state_v3";
 
-// 4 daily slots with varied messages
-const DAILY_SLOTS = [
-  { hour: 8, minute: 0, title: "Lo Sapevi che?", body: "Inizia la giornata con una curiosità ☀️" },
-  { hour: 13, minute: 0, title: "Pausa mentale", body: "Una curiosità per la pausa pranzo 🍽️✨" },
-  { hour: 17, minute: 0, title: "Lo Sapevi che?", body: "Scopri qualcosa di nuovo prima di cena 🌅" },
-  { hour: 21, minute: 0, title: "Buonanotte curioso", body: "Una perla di sapere prima di dormire 🌙" },
+export type WindowKey = "mattina" | "pomeriggio" | "sera" | "sorpresa";
+
+export const WINDOWS: Record<WindowKey, { label: string; icon: string; startHour: number; endHour: number }> = {
+  mattina: { label: "Mattina 7-10", icon: "sunny", startHour: 7, endHour: 10 },
+  pomeriggio: { label: "Pomeriggio 12-16", icon: "partly-sunny", startHour: 12, endHour: 16 },
+  sera: { label: "Sera 18-22", icon: "moon", startHour: 18, endHour: 22 },
+  sorpresa: { label: "Sorpresa 8-22", icon: "dice", startHour: 8, endHour: 22 },
+};
+
+export const NOTIF_PER_DAY = 4;
+export const SCHEDULE_DAYS = 25; // ~100 programmate su 25 giorni × 4/giorno
+
+const TITLES = [
+  "Lo Sapevi che?",
+  "Una curiosità per te",
+  "Pronto a scoprire?",
+  "Una nuova perla di sapere",
+  "Hai 30 secondi?",
 ];
 
-export async function ensureDailyNotifications(force = false): Promise<"granted" | "denied" | "simulator" | "error"> {
-  try {
-    if (!Device.isDevice) return "simulator";
+const BODIES = [
+  "Una curiosità ti aspetta ✨",
+  "Scopri qualcosa di nuovo 🌟",
+  "Illumina la tua giornata con una curiosità 💡",
+  "Nuova perla di sapere disponibile 📖",
+  "Tocca per scoprire la tua curiosità del giorno 🔮",
+];
 
-    const already = await AsyncStorage.getItem(SCHEDULED_KEY);
-    if (already === "true" && !force) return "granted";
-
-    if (Platform.OS === "android") {
-      await Notifications.setNotificationChannelAsync("default", {
-        name: "Curiosità quotidiane",
-        importance: Notifications.AndroidImportance.HIGH,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: "#D4AF37",
-      });
-    }
-
-    const { status: existing } = await Notifications.getPermissionsAsync();
-    let finalStatus = existing;
-    if (existing !== "granted") {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    if (finalStatus !== "granted") return "denied";
-
-    // Cancel any previously scheduled reminders to avoid duplicates
-    await Notifications.cancelAllScheduledNotificationsAsync();
-
-    // Schedule the 4 daily slots
-    for (const slot of DAILY_SLOTS) {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: slot.title,
-          body: slot.body,
-          sound: "default",
-        },
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.DAILY,
-          hour: slot.hour,
-          minute: slot.minute,
-        } as any,
-      });
-    }
-
-    await AsyncStorage.setItem(SCHEDULED_KEY, "true");
-    return "granted";
-  } catch (e) {
-    console.warn("ensureDailyNotifications error", e);
-    return "error";
-  }
+function pick<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
 }
 
-export async function disableDailyNotifications() {
+type NotifState = {
+  enabled: boolean;
+  window: WindowKey;
+  scheduledCount: number;
+  nextAt?: string; // ISO string
+};
+
+export async function getNotifState(): Promise<NotifState> {
   try {
-    await Notifications.cancelAllScheduledNotificationsAsync();
-    await AsyncStorage.removeItem(SCHEDULED_KEY);
+    const raw = await AsyncStorage.getItem(STATE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return { enabled: false, window: "sorpresa", scheduledCount: 0 };
+}
+
+async function saveNotifState(s: NotifState) {
+  try {
+    await AsyncStorage.setItem(STATE_KEY, JSON.stringify(s));
   } catch {}
 }
 
-export async function areNotificationsActive(): Promise<boolean> {
+async function ensurePermission(): Promise<"granted" | "denied" | "simulator"> {
+  if (!Device.isDevice) return "simulator";
+  if (Platform.OS === "android") {
+    await Notifications.setNotificationChannelAsync("default", {
+      name: "Curiosità quotidiane",
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: "#D4AF37",
+    });
+  }
+  const { status: existing } = await Notifications.getPermissionsAsync();
+  if (existing === "granted") return "granted";
+  const { status } = await Notifications.requestPermissionsAsync();
+  return status === "granted" ? "granted" : "denied";
+}
+
+function randomTimesInWindow(startHour: number, endHour: number, count: number): Array<{ h: number; m: number }> {
+  // Generate `count` random times between startHour:00 and endHour:59 (inclusive window)
+  const minutesStart = startHour * 60;
+  const minutesEnd = endHour * 60 + 59;
+  const step = Math.floor((minutesEnd - minutesStart) / count);
+  const out: Array<{ h: number; m: number }> = [];
+  for (let i = 0; i < count; i++) {
+    const base = minutesStart + step * i;
+    const jitter = Math.floor(Math.random() * Math.max(step - 10, 10));
+    const total = Math.min(base + jitter, minutesEnd);
+    out.push({ h: Math.floor(total / 60), m: total % 60 });
+  }
+  return out;
+}
+
+export async function scheduleNotifications(windowKey: WindowKey): Promise<{
+  ok: boolean;
+  reason?: "simulator" | "denied" | "error";
+  state?: NotifState;
+}> {
   try {
-    const v = await AsyncStorage.getItem(SCHEDULED_KEY);
-    if (v !== "true") return false;
-    const { status } = await Notifications.getPermissionsAsync();
-    return status === "granted";
-  } catch {
-    return false;
+    const perm = await ensurePermission();
+    if (perm === "simulator") return { ok: false, reason: "simulator" };
+    if (perm === "denied") return { ok: false, reason: "denied" };
+
+    await Notifications.cancelAllScheduledNotificationsAsync();
+
+    const win = WINDOWS[windowKey];
+    const now = new Date();
+    let nextAt: Date | null = null;
+    let scheduled = 0;
+
+    for (let d = 0; d < SCHEDULE_DAYS; d++) {
+      const times = randomTimesInWindow(win.startHour, win.endHour, NOTIF_PER_DAY);
+      for (const t of times) {
+        const date = new Date(now);
+        date.setDate(now.getDate() + d);
+        date.setHours(t.h, t.m, 0, 0);
+        if (date.getTime() <= now.getTime() + 30_000) continue; // skip past
+        try {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: pick(TITLES),
+              body: pick(BODIES),
+              sound: "default",
+            },
+            trigger: {
+              type: Notifications.SchedulableTriggerInputTypes.DATE,
+              date,
+            } as any,
+          });
+          scheduled++;
+          if (!nextAt || date < nextAt) nextAt = date;
+        } catch {}
+      }
+    }
+
+    const state: NotifState = {
+      enabled: true,
+      window: windowKey,
+      scheduledCount: scheduled,
+      nextAt: nextAt ? nextAt.toISOString() : undefined,
+    };
+    await saveNotifState(state);
+    return { ok: true, state };
+  } catch (e) {
+    return { ok: false, reason: "error" };
   }
 }
 
-export const NOTIFICATION_SLOTS = DAILY_SLOTS.map((s) => `${s.hour.toString().padStart(2, "0")}:${s.minute.toString().padStart(2, "0")}`);
+export async function disableNotifications(): Promise<void> {
+  try {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+    const cur = await getNotifState();
+    await saveNotifState({ ...cur, enabled: false, scheduledCount: 0, nextAt: undefined });
+  } catch {}
+}
+
+/**
+ * Called on app open: if user has never configured notifications,
+ * auto-enable with default "Sorpresa" window and schedule.
+ */
+export async function ensureDefaultScheduling(): Promise<NotifState | null> {
+  try {
+    const s = await getNotifState();
+    if (s.enabled && s.scheduledCount > 0) {
+      // Already configured; check permission still granted
+      if (!Device.isDevice) return s;
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status !== "granted") return s;
+      return s;
+    }
+    // Auto-schedule with Sorpresa window (default)
+    const res = await scheduleNotifications("sorpresa");
+    return res.state || null;
+  } catch {
+    return null;
+  }
+}

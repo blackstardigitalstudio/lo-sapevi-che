@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api, theme } from "../../src/lib/api";
 import { TrophyModal, Trophy } from "../../src/components/TrophyModal";
 import { useAuth } from "../../src/context/AuthContext";
-import { ensureDailyNotifications } from "../../src/lib/notifications";
+import { ensureDefaultScheduling } from "../../src/lib/notifications";
 
 export default function TabsLayout() {
   const { user, refresh } = useAuth();
@@ -22,8 +22,8 @@ export default function TabsLayout() {
         }
         refresh();
       } catch {}
-      // Auto-enable 4 daily reminders on first login after sign-up
-      ensureDailyNotifications().catch(() => {});
+      // Auto-enable 4 daily random reminders (default: Sorpresa window)
+      ensureDefaultScheduling().catch(() => {});
     })();
   }, [user?.id]);
 
