@@ -236,7 +236,7 @@ export default function Onboarding() {
         )}
       </ScrollView>
 
-      <View style={[styles.bottom, { paddingBottom: 20 + insets.bottom }]}>
+      <View style={[styles.bottom, { paddingBottom: Math.max(insets.bottom + 20, 56) }]}>
         <Text style={styles.counter}>
           {selected.size < 3
             ? `Seleziona almeno ${3 - selected.size} in più`

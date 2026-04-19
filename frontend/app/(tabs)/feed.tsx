@@ -40,7 +40,7 @@ export default function Feed() {
   const { refresh: refreshUser } = useAuth();
   const { height: winH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const TAB_BAR = 62 + insets.bottom;
+  const TAB_BAR = 62 + Math.max(insets.bottom, 16);
   const defaultH = Math.max(400, winH - TAB_BAR);
   const [facts, setFacts] = useState<Fact[]>([]);
   const [loading, setLoading] = useState(true);
