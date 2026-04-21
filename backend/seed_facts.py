@@ -7,6 +7,7 @@ CATEGORIES = [
     "Musica", "Geografia", "Medicina", "Filosofia", "Economia",
     "Letteratura", "Animali", "Matematica", "Viaggi", "Mitologia",
     "Mafia", "Guerre", "Motori", "Macchine", "Moto",
+    "Invenzioni", "Disastri", "Religioni", "Misteri",
 ]
 
 CATEGORY_EMOJI = {
@@ -35,6 +36,10 @@ CATEGORY_EMOJI = {
     "Motori": "speedometer",
     "Macchine": "car-sport",
     "Moto": "bicycle",
+    "Invenzioni": "construct",
+    "Disastri": "warning",
+    "Religioni": "book-outline",
+    "Misteri": "help-circle",
 }
 
 # Categories that have sub-categories (brands, sub-themes)
@@ -44,6 +49,12 @@ SUB_CATEGORIES = {
     "Motori": ["Formula 1", "MotoGP", "Rally", "Le Mans", "NASCAR", "Motori elettrici", "Auto d'epoca"],
     "Guerre": ["Prima guerra mondiale", "Seconda guerra mondiale", "Guerra fredda", "Guerre napoleoniche", "Guerre antiche", "Guerre moderne", "Guerre medievali"],
     "Mafia": ["Cosa Nostra", "Camorra", "'Ndrangheta", "Sacra Corona Unita", "Mafia americana", "Yakuza", "Cartelli messicani", "Triadi cinesi"],
+    "Invenzioni": ["Invenzioni italiane", "Invenzioni accidentali", "Invenzioni mediche", "Invenzioni tecnologiche", "Invenzioni antiche"],
+    "Disastri": ["Disastri naturali", "Disastri industriali", "Naufragi famosi", "Incidenti aerei", "Epidemie storiche"],
+    "Religioni": ["Cristianesimo", "Islam", "Buddismo", "Induismo", "Ebraismo", "Culti antichi", "Nuove religioni"],
+    "Misteri": ["Enigmi irrisolti", "Sparizioni misteriose", "Luoghi strani", "Fenomeni inspiegabili", "Creature leggendarie"],
+    "Cucina": ["Cucina italiana", "Cucina asiatica", "Cucina francese", "Dolci", "Street food"],
+    "Animali": ["Predatori", "Uccelli", "Pesci e mare", "Insetti", "Animali estinti"],
 }
 
 # Image category mapping for cover

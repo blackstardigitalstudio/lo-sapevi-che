@@ -333,10 +333,121 @@ async def on_startup():
     except Exception as e:
         logger.warning(f"Image migration skipped: {e}")
 
+    # Start background pre-generation scheduler
+    try:
+        start_prefill_scheduler()
+    except Exception as e:
+        logger.warning(f"Scheduler start failed (non-fatal): {e}")
+
 
 @app.on_event("shutdown")
 async def on_shutdown():
+    try:
+        if _scheduler is not None and _scheduler.running:
+            _scheduler.shutdown(wait=False)
+    except Exception:
+        pass
     client.close()
+
+
+# ==========================================================
+# BACKGROUND AI PRE-GENERATION
+# ==========================================================
+# Settings:
+#   - Runs every PREFILL_INTERVAL_HOURS (default 12h)
+#   - Adds PREFILL_BATCH_SIZE new AI facts per run (default 10)
+#   - Stops once DB has PREFILL_MAX_FACTS total facts (default 1000)
+#   - Picks categories least represented in DB so coverage stays balanced
+PREFILL_INTERVAL_HOURS = int(os.environ.get("PREFILL_INTERVAL_HOURS", "12"))
+PREFILL_BATCH_SIZE = int(os.environ.get("PREFILL_BATCH_SIZE", "10"))
+PREFILL_MAX_FACTS = int(os.environ.get("PREFILL_MAX_FACTS", "1000"))
+
+_scheduler = None
+
+
+async def _prefill_run():
+    """One pre-generation run: add up to PREFILL_BATCH_SIZE AI facts focused on
+    under-represented categories."""
+    try:
+        total = await db.facts.count_documents({})
+        if total >= PREFILL_MAX_FACTS:
+            logger.info(f"[prefill] Skipped: DB has {total} facts (cap={PREFILL_MAX_FACTS}).")
+            return
+
+        # Count facts per category to pick underrepresented ones
+        pipeline = [{"$group": {"_id": "$category", "n": {"$sum": 1}}}]
+        counts = {c["_id"]: c["n"] async for c in db.facts.aggregate(pipeline)}
+        # Ensure every category appears (0 for missing ones)
+        ranked = sorted(
+            CATEGORIES,
+            key=lambda c: (counts.get(c, 0), random.random()),
+        )
+        to_fill = ranked[: PREFILL_BATCH_SIZE]
+
+        added = 0
+        for cat in to_fill:
+            if await db.facts.count_documents({}) >= PREFILL_MAX_FACTS:
+                break
+            ai = await generate_fact_ai(cat)
+            if not ai:
+                continue
+            # Dedup by title
+            if await db.facts.find_one({"title": ai["title"]}):
+                continue
+            img_url = image_for_fact(cat, ai["title"], None)
+            doc = {
+                "id": str(uuid.uuid4()),
+                "title": ai["title"],
+                "short_fact": ai["short_fact"],
+                "deep_dive": ai["deep_dive"],
+                "sources": ai.get("sources", []),
+                "category": cat,
+                "sub_category": None,
+                "image_url": img_url,
+                "source": "ai_prefill",
+                "created_at": datetime.now(timezone.utc),
+            }
+            await db.facts.insert_one(doc)
+            added += 1
+            # tiny delay to avoid hammering the LLM
+            await asyncio.sleep(0.3)
+
+        new_total = await db.facts.count_documents({})
+        logger.info(
+            f"[prefill] Added {added} facts across {len(to_fill)} categories. "
+            f"DB total now {new_total}/{PREFILL_MAX_FACTS}."
+        )
+    except Exception as e:
+        logger.error(f"[prefill] run failed: {e}")
+
+
+def start_prefill_scheduler():
+    """Start an AsyncIOScheduler that runs _prefill_run every PREFILL_INTERVAL_HOURS."""
+    global _scheduler
+    if _scheduler is not None:
+        return
+    try:
+        from apscheduler.schedulers.asyncio import AsyncIOScheduler
+    except Exception as e:
+        logger.warning(f"APScheduler not available: {e}")
+        return
+    sch = AsyncIOScheduler(timezone="UTC")
+    sch.add_job(
+        _prefill_run,
+        trigger="interval",
+        hours=PREFILL_INTERVAL_HOURS,
+        next_run_time=datetime.now(timezone.utc) + timedelta(minutes=2),
+        id="ai_prefill",
+        coalesce=True,
+        max_instances=1,
+        misfire_grace_time=3600,
+    )
+    sch.start()
+    _scheduler = sch
+    logger.info(
+        f"[prefill] scheduler started: every {PREFILL_INTERVAL_HOURS}h · "
+        f"batch={PREFILL_BATCH_SIZE} · cap={PREFILL_MAX_FACTS}"
+    )
 
 
 # ==========================================================

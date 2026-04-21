@@ -1,306 +1,308 @@
-"""Backend test suite for Lo Sapevi che? - password recovery via security question.
+"""Backend regression tests for 'Lo Sapevi che?' FastAPI.
 
-Tests endpoints at http://localhost:8001/api:
-- POST /api/auth/register (with security question/answer)
-- POST /api/auth/forgot/question
-- POST /api/auth/forgot/reset
-- POST /api/auth/security-question
-- Regression: /api/auth/login, /api/auth/me, /api/feed, /api/facts/generate
+Covers:
+- Categories endpoint (29 cats, new cats have sub_categories, Cucina/Animali have sub_categories)
+- Feed with expanded interests (Invenzioni, Misteri)
+- Facts by category (via /api/feed with interests)
+- AI generate on new category (Misteri)
+- Regressions: /auth/register, /auth/forgot/question, /auth/forgot/reset,
+  /auth/security-question, /auth/me, /auth/checkin, /api/health, scheduler log
+- Image URL HTTP 200 for 5 random feed facts
 """
-import uuid
-import json
+import os
 import sys
+import uuid
+import random
 import requests
 
-BASE = "http://localhost:8001/api"
+BASE = os.environ.get(
+    "BACKEND_URL",
+    "https://sapevi-che.preview.emergentagent.com"
+) + "/api"
 
-results = []
-
-
-def rec(name, ok, detail=""):
-    tag = "PASS" if ok else "FAIL"
-    line = f"[{tag}] {name}" + (f" — {detail}" if detail else "")
-    print(line)
-    results.append((name, ok, detail))
+PASS = []
+FAIL = []
 
 
-def unique_email(tag="test"):
-    return f"{tag}-{uuid.uuid4().hex[:10]}@example.com"
+def record(name: str, ok: bool, detail: str = ""):
+    if ok:
+        PASS.append(name)
+        print(f"PASS  {name}  {detail}")
+    else:
+        FAIL.append(f"{name} :: {detail}")
+        print(f"FAIL  {name}  {detail}")
 
 
-def test_all():
-    # ---- 1. REGISTER with security question ----
-    email = unique_email("maria")
-    password = "Segreto123!"
+def req(method, path, **kw):
+    url = BASE + path
+    try:
+        r = requests.request(method, url, timeout=60, **kw)
+    except Exception as e:
+        return None, None, str(e)
+    try:
+        j = r.json()
+    except Exception:
+        j = None
+    return r.status_code, j, None
+
+
+# -----------------------------------------------------------
+# 1. Categories endpoint
+# -----------------------------------------------------------
+def test_categories():
+    code, body, err = req("GET", "/categories")
+    if err or code != 200 or not isinstance(body, list):
+        record("categories_endpoint_200", False, f"code={code} err={err}")
+        return
+    record("categories_endpoint_200", True, f"n={len(body)}")
+    record("categories_count_29", len(body) == 29, f"got {len(body)}")
+
+    names = [c.get("name") for c in body]
+    for req_cat in ["Invenzioni", "Disastri", "Religioni", "Misteri"]:
+        record(f"new_category_present:{req_cat}", req_cat in names)
+
+    sub_map = {c["name"]: c.get("subcategories") or [] for c in body}
+    for cat in ["Invenzioni", "Disastri", "Religioni", "Misteri", "Cucina", "Animali"]:
+        subs = sub_map.get(cat) or []
+        record(f"sub_categories_non_empty:{cat}", len(subs) > 0, f"subs={len(subs)}")
+
+
+# -----------------------------------------------------------
+# 2 + 6. Feed with expanded interests + Image URL checks
+# -----------------------------------------------------------
+def test_feed_and_images():
+    email = f"marco.rossi+{uuid.uuid4().hex[:8]}@losapevi.app"
     payload = {
         "email": email,
-        "password": password,
-        "name": "Maria Rossi",
-        "interests": ["Scienza", "Spazio"],
+        "password": "Cur!osita2026",
+        "name": "Marco Rossi",
+        "interests": ["Invenzioni", "Misteri"],
+        "security_question": "Qual è il nome del tuo primo animale domestico?",
+        "security_answer": "pluto",
+    }
+    code, body, err = req("POST", "/auth/register", json=payload)
+    if code != 200 or not body or "token" not in body:
+        record("register_new_interests", False, f"code={code} body={body}")
+        return None
+    token = body["token"]
+    record("register_new_interests", True,
+           f"has_sq={body['user'].get('has_security_question')}")
+
+    headers = {"Authorization": f"Bearer {token}"}
+
+    code, body, err = req("GET", "/feed?limit=20", headers=headers)
+    if code != 200 or not body or "facts" not in body:
+        record("feed_new_interests_200", False, f"code={code} body={body}")
+        return token
+    facts = body["facts"]
+    record("feed_new_interests_200", True, f"n={len(facts)}")
+    record("feed_non_empty", len(facts) > 0, f"n={len(facts)}")
+
+    cats_returned = {f.get("category") for f in facts}
+    record("feed_strict_category_filter",
+           cats_returned.issubset({"Invenzioni", "Misteri"}),
+           f"cats={cats_returned}")
+
+    all_have_img = all(
+        isinstance(f.get("image_url"), str) and f["image_url"].startswith("http")
+        for f in facts
+    )
+    record("feed_all_have_image_url", all_have_img)
+
+    # 5 random image URLs return HTTP 200
+    sample = random.sample(facts, min(5, len(facts)))
+    ok_count = 0
+    for f in sample:
+        try:
+            r = requests.head(f["image_url"], timeout=20, allow_redirects=True)
+            if r.status_code == 200:
+                ok_count += 1
+            else:
+                r2 = requests.get(f["image_url"], timeout=20, stream=True)
+                if r2.status_code == 200:
+                    ok_count += 1
+        except Exception:
+            pass
+    record("image_urls_http_200_sample5",
+           ok_count == len(sample), f"{ok_count}/{len(sample)} ok")
+
+    # 3. Feed filtered by single new category
+    email2 = f"giulia.bianchi+{uuid.uuid4().hex[:8]}@losapevi.app"
+    p2 = {**payload, "email": email2, "interests": ["Invenzioni"]}
+    code, b2, _ = req("POST", "/auth/register", json=p2)
+    if code == 200:
+        h2 = {"Authorization": f"Bearer {b2['token']}"}
+        code, body2, _ = req("GET", "/feed?limit=5", headers=h2)
+        if code == 200 and body2.get("facts"):
+            cats2 = {f["category"] for f in body2["facts"]}
+            record("feed_facts_by_category_Invenzioni",
+                   cats2 == {"Invenzioni"},
+                   f"cats={cats2} n={len(body2['facts'])}")
+        else:
+            record("feed_facts_by_category_Invenzioni", False,
+                   f"code={code} body={body2}")
+    else:
+        record("feed_facts_by_category_Invenzioni", False, f"register code={code}")
+
+    return token
+
+
+# -----------------------------------------------------------
+# 4. AI generate on new category
+# -----------------------------------------------------------
+def test_ai_generate(token):
+    headers = {"Authorization": f"Bearer {token}"}
+    code, body, err = req("POST", "/facts/generate",
+                          headers=headers, json={"category": "Misteri"})
+    if code != 200 or not body:
+        record("ai_generate_Misteri", False, f"code={code} body={body} err={err}")
+        return
+    ok = (
+        body.get("category") == "Misteri"
+        and isinstance(body.get("title"), str) and body["title"]
+        and isinstance(body.get("short_fact"), str)
+        and isinstance(body.get("deep_dive"), str)
+    )
+    record("ai_generate_Misteri", ok, f"title={body.get('title', '')[:60]}")
+
+
+# -----------------------------------------------------------
+# 5. Regression
+# -----------------------------------------------------------
+def test_regression():
+    bad = {
+        "email": f"noq+{uuid.uuid4().hex[:6]}@losapevi.app",
+        "password": "Cur!osita2026",
+        "name": "No Question",
+        "interests": ["Scienza"],
+    }
+    code, _, _ = req("POST", "/auth/register", json=bad)
+    record("register_requires_sq_422", code == 422, f"code={code}")
+
+    email = f"lucia.verdi+{uuid.uuid4().hex[:8]}@losapevi.app"
+    reg = {
+        "email": email,
+        "password": "Cur!osita2026",
+        "name": "Lucia Verdi",
+        "interests": ["Storia", "Arte"],
         "security_question": "Qual è il nome del tuo primo animale domestico?",
         "security_answer": "Pluto",
     }
-    r = requests.post(f"{BASE}/auth/register", json=payload, timeout=30)
-    ok = r.status_code == 200
-    body = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
-    user_obj = body.get("user", {})
-    rec(
-        "register — valid payload with security question returns 200 + has_security_question=true",
-        ok and user_obj.get("has_security_question") is True,
-        f"status={r.status_code} has_security_question={user_obj.get('has_security_question')} body={body if not ok else ''}",
-    )
-    token = body.get("token", "")
+    code, body, _ = req("POST", "/auth/register", json=reg)
+    if code != 200:
+        record("reg_regression_flow", False, f"register code={code}")
+        return
+    token = body["token"]
 
-    # ---- 1b. REGISTER old-format (missing security fields) returns 422 ----
-    old_payload = {
-        "email": unique_email("oldformat"),
-        "password": password,
-        "name": "Old Format",
-        "interests": ["Scienza"],
-    }
-    r2 = requests.post(f"{BASE}/auth/register", json=old_payload, timeout=15)
-    rec(
-        "register — old-format payload (no security Q/A) returns 422",
-        r2.status_code == 422,
-        f"status={r2.status_code}",
-    )
+    code, me, _ = req("GET", "/auth/me",
+                      headers={"Authorization": f"Bearer {token}"})
+    record("auth_me_has_sq_bool",
+           code == 200 and me and me.get("has_security_question") is True,
+           f"code={code} sq={me.get('has_security_question') if me else None}")
 
-    # ---- 2. FORGOT QUESTION ----
-    # 2a. happy path
-    r = requests.post(f"{BASE}/auth/forgot/question", json={"email": email}, timeout=15)
-    ok = r.status_code == 200 and r.json().get("security_question") == payload["security_question"]
-    rec(
-        "forgot/question — existing user with question returns 200 + correct question",
-        ok,
-        f"status={r.status_code} body={r.text[:200]}",
-    )
+    code, body, _ = req("POST", "/auth/forgot/question", json={"email": email})
+    record("forgot_question_ok",
+           code == 200 and body and body.get("security_question"),
+           f"code={code}")
 
-    # 2b. unknown email → 404
-    r = requests.post(f"{BASE}/auth/forgot/question", json={"email": unique_email("ghost")}, timeout=15)
-    rec(
-        "forgot/question — unknown email returns 404",
-        r.status_code == 404,
-        f"status={r.status_code} body={r.text[:200]}",
-    )
+    code, _, _ = req("POST", "/auth/forgot/question",
+                     json={"email": f"missing+{uuid.uuid4().hex[:6]}@x.it"})
+    record("forgot_question_unknown_404", code == 404, f"code={code}")
 
-    # 2c. pre-migration user without question → create one manually via Mongo
-    # We'll simulate by creating a user via register, then unsetting security_question via direct mongo access.
-    # Since we can't hit Mongo directly from test easily, we use a different tactic: unknown email already covers the 404 path.
-    # But the spec requires testing a user that exists but has no question. Do via pymongo.
+    code, _, _ = req("POST", "/auth/forgot/reset",
+                     json={"email": email, "security_answer": "sbagliato",
+                           "new_password": "NewPass!2026"})
+    record("forgot_reset_wrong_401", code == 401, f"code={code}")
+
+    code, body, _ = req("POST", "/auth/forgot/reset",
+                        json={"email": email, "security_answer": "  PLUTO  ",
+                              "new_password": "NewPass!2026"})
+    record("forgot_reset_correct_normalized",
+           code == 200 and body and body.get("token"),
+           f"code={code}")
+
+    code, _, _ = req("POST", "/auth/login",
+                     json={"email": email, "password": "Cur!osita2026"})
+    record("login_old_pwd_fails", code == 401, f"code={code}")
+
+    code, body, _ = req("POST", "/auth/login",
+                        json={"email": email, "password": "NewPass!2026"})
+    record("login_new_pwd_ok",
+           code == 200 and body and body.get("token"), f"code={code}")
+    login_token = body.get("token") if code == 200 and body else None
+
+    code, _, _ = req("POST", "/auth/security-question",
+                     json={"security_question": "Il tuo colore preferito?",
+                           "security_answer": "blu",
+                           "current_password": "NewPass!2026"},
+                     headers={"Authorization": f"Bearer {login_token}"})
+    record("set_security_question_ok", code == 200, f"code={code}")
+
+    code, _, _ = req("POST", "/auth/security-question",
+                     json={"security_question": "Altro?",
+                           "security_answer": "x",
+                           "current_password": "WRONG!!"},
+                     headers={"Authorization": f"Bearer {login_token}"})
+    record("set_sq_wrong_current_pwd_401", code == 401, f"code={code}")
+
+    code, _, _ = req("POST", "/auth/security-question",
+                     json={"security_question": "a?", "security_answer": "b",
+                           "current_password": "x"})
+    record("set_sq_no_token_401", code == 401, f"code={code}")
+
+    code, body, _ = req("POST", "/auth/forgot/question", json={"email": email})
+    record("forgot_question_returns_new_question",
+           code == 200 and body and body.get("security_question") == "Il tuo colore preferito?",
+           f"q={body.get('security_question') if body else None}")
+
+    code, body, _ = req("POST", "/auth/checkin",
+                        headers={"Authorization": f"Bearer {login_token}"})
+    ok = (code == 200 and body and "streak_days" in body
+          and "best_streak" in body and "trophies" in body
+          and "new_trophies" in body)
+    record("auth_checkin_ok", ok,
+           f"code={code} streak={body.get('streak_days') if body else None}")
+
+    code, body, _ = req("GET", "/health")
+    facts_n = body.get("facts") if body else 0
+    record("health_ok", code == 200 and body and body.get("ok") is True,
+           f"code={code}")
+    record("health_facts_count_ge_133", facts_n >= 133, f"facts={facts_n}")
+
+
+# -----------------------------------------------------------
+# 7. Scheduler startup log
+# -----------------------------------------------------------
+def test_scheduler_log():
+    import subprocess
     try:
-        import os
-        from pymongo import MongoClient
-        from dotenv import load_dotenv
-        load_dotenv("/app/backend/.env")
-        mc = MongoClient(os.environ["MONGO_URL"])
-        dbname = os.environ["DB_NAME"]
-        mdb = mc[dbname]
-        # Pick a user and remove security fields, then put them back
-        legacy_email = unique_email("legacy")
-        # Insert a pre-migration-like user via register first
-        reg_payload = {
-            "email": legacy_email,
-            "password": password,
-            "name": "Legacy User",
-            "interests": [],
-            "security_question": "placeholder",
-            "security_answer": "x",
-        }
-        rr = requests.post(f"{BASE}/auth/register", json=reg_payload, timeout=15)
-        assert rr.status_code == 200, f"setup register failed: {rr.text}"
-        # Simulate legacy: drop security fields
-        mdb.users.update_one(
-            {"email": legacy_email},
-            {"$unset": {"security_question": "", "security_answer_hash": ""}},
-        )
-        rq = requests.post(f"{BASE}/auth/forgot/question", json={"email": legacy_email}, timeout=15)
-        msg_ok = "domanda" in rq.text.lower() or "configurata" in rq.text.lower()
-        rec(
-            "forgot/question — user without security question returns 404 with Italian guidance message",
-            rq.status_code == 404 and msg_ok,
-            f"status={rq.status_code} body={rq.text[:250]}",
-        )
+        out = subprocess.check_output(
+            "grep -h 'scheduler started' /var/log/supervisor/backend.*.log | tail -1",
+            shell=True, stderr=subprocess.STDOUT
+        ).decode()
     except Exception as e:
-        rec("forgot/question — legacy user scenario", False, f"setup error: {e}")
-
-    # ---- 3. FORGOT RESET ----
-    # 3a. wrong answer → 401
-    r = requests.post(
-        f"{BASE}/auth/forgot/reset",
-        json={"email": email, "security_answer": "Fido", "new_password": "NuovaPwd1!"},
-        timeout=15,
-    )
-    rec(
-        "forgot/reset — wrong answer returns 401",
-        r.status_code == 401,
-        f"status={r.status_code} body={r.text[:200]}",
-    )
-
-    # 3b. correct answer w/ case/space normalization → 200 with token
-    new_password = "NuovaPwd1!"
-    r = requests.post(
-        f"{BASE}/auth/forgot/reset",
-        json={"email": email, "security_answer": "  PLUTO  ", "new_password": new_password},
-        timeout=15,
-    )
-    rok = r.status_code == 200
-    body = r.json() if rok else {}
-    rec(
-        "forgot/reset — correct answer with normalization (mixed case + spaces) returns 200 + token",
-        rok and bool(body.get("token")),
-        f"status={r.status_code} has_token={bool(body.get('token'))} body={r.text[:200] if not rok else ''}",
-    )
-
-    # 3c. login with NEW password works
-    rnew = requests.post(f"{BASE}/auth/login", json={"email": email, "password": new_password}, timeout=15)
-    rec(
-        "login — with NEW password after reset returns 200",
-        rnew.status_code == 200,
-        f"status={rnew.status_code} body={rnew.text[:200]}",
-    )
-
-    # 3d. login with OLD password fails 401
-    rold = requests.post(f"{BASE}/auth/login", json={"email": email, "password": password}, timeout=15)
-    rec(
-        "login — with OLD password after reset returns 401",
-        rold.status_code == 401,
-        f"status={rold.status_code}",
-    )
-
-    # 3e. new password too short → 422
-    r = requests.post(
-        f"{BASE}/auth/forgot/reset",
-        json={"email": email, "security_answer": "pluto", "new_password": "abc"},
-        timeout=15,
-    )
-    rec(
-        "forgot/reset — new_password too short (<6 chars) returns 422",
-        r.status_code == 422,
-        f"status={r.status_code}",
-    )
-
-    # ---- 4. SET SECURITY QUESTION (auth required) ----
-    # First, relogin to get fresh token (though current one still valid)
-    rlogin = requests.post(f"{BASE}/auth/login", json={"email": email, "password": new_password}, timeout=15)
-    assert rlogin.status_code == 200, "relogin failed"
-    token = rlogin.json()["token"]
-
-    # 4a. without token → 401
-    r = requests.post(
-        f"{BASE}/auth/security-question",
-        json={
-            "security_question": "Qual è il tuo cibo preferito?",
-            "security_answer": "Pizza",
-            "current_password": new_password,
-        },
-        timeout=15,
-    )
-    rec(
-        "security-question — without auth token returns 401",
-        r.status_code == 401,
-        f"status={r.status_code}",
-    )
-
-    # 4b. wrong current_password → 401
-    r = requests.post(
-        f"{BASE}/auth/security-question",
-        json={
-            "security_question": "Qual è il tuo cibo preferito?",
-            "security_answer": "Pizza",
-            "current_password": "wrongpass",
-        },
-        headers={"Authorization": f"Bearer {token}"},
-        timeout=15,
-    )
-    ok = r.status_code == 401 and "password attuale" in r.text.lower()
-    rec(
-        "security-question — wrong current_password returns 401 'Password attuale non corretta'",
-        ok,
-        f"status={r.status_code} body={r.text[:200]}",
-    )
-
-    # 4c. correct current_password → 200 {ok: true}
-    new_question = "Qual è il tuo cibo preferito?"
-    r = requests.post(
-        f"{BASE}/auth/security-question",
-        json={
-            "security_question": new_question,
-            "security_answer": "Pizza",
-            "current_password": new_password,
-        },
-        headers={"Authorization": f"Bearer {token}"},
-        timeout=15,
-    )
-    ok = r.status_code == 200 and r.json().get("ok") is True
-    rec(
-        "security-question — correct current_password returns 200 {ok:true}",
-        ok,
-        f"status={r.status_code} body={r.text[:200]}",
-    )
-
-    # 4d. forgot/question now returns the NEW question
-    r = requests.post(f"{BASE}/auth/forgot/question", json={"email": email}, timeout=15)
-    ok = r.status_code == 200 and r.json().get("security_question") == new_question
-    rec(
-        "forgot/question — after update returns the NEW question",
-        ok,
-        f"status={r.status_code} body={r.text[:200]}",
-    )
-
-    # ---- REGRESSION ----
-    # /api/auth/me with has_security_question
-    r = requests.get(f"{BASE}/auth/me", headers={"Authorization": f"Bearer {token}"}, timeout=15)
-    ok = r.status_code == 200 and "has_security_question" in r.json() and isinstance(r.json()["has_security_question"], bool)
-    rec(
-        "auth/me — returns 200 and includes has_security_question boolean",
-        ok,
-        f"status={r.status_code} has_security_question={r.json().get('has_security_question') if r.status_code==200 else 'N/A'}",
-    )
-
-    # /api/feed
-    r = requests.get(f"{BASE}/feed?limit=20", headers={"Authorization": f"Bearer {token}"}, timeout=30)
-    if r.status_code == 200:
-        facts = r.json().get("facts", [])
-        all_have_image = all(f.get("image_url", "").startswith("http") for f in facts) if facts else False
-        rec(
-            "feed?limit=20 — returns 200 with facts having valid image_url",
-            bool(facts) and all_have_image,
-            f"count={len(facts)} all_have_image={all_have_image}",
-        )
-    else:
-        rec("feed?limit=20 — returns 200", False, f"status={r.status_code} body={r.text[:200]}")
-
-    # /api/facts/generate — Claude AI
-    try:
-        r = requests.post(
-            f"{BASE}/facts/generate",
-            json={"category": "Scienza"},
-            headers={"Authorization": f"Bearer {token}"},
-            timeout=60,
-        )
-        ok = r.status_code == 200
-        detail = ""
-        if ok:
-            body = r.json()
-            detail = f"title='{body.get('title','')[:80]}' category={body.get('category')}"
-        else:
-            detail = f"status={r.status_code} body={r.text[:300]}"
-        rec("facts/generate — Claude AI returns 200 with generated fact", ok, detail)
-    except requests.Timeout:
-        rec("facts/generate — Claude AI", False, "timeout after 60s")
-    except Exception as e:
-        rec("facts/generate — Claude AI", False, f"exception: {e}")
-
-    # ---- SUMMARY ----
-    passed = sum(1 for _, ok, _ in results if ok)
-    total = len(results)
-    print(f"\n======= RESULTS: {passed}/{total} passed =======")
-    for name, ok, detail in results:
-        if not ok:
-            print(f"  FAIL: {name} — {detail}")
-    return passed == total
+        out = str(e)
+    ok = ("scheduler started: every 12h" in out
+          and "batch=10" in out and "cap=1000" in out)
+    record("scheduler_startup_log_present", ok, out.strip()[:200])
 
 
 if __name__ == "__main__":
-    success = test_all()
-    sys.exit(0 if success else 1)
+    print(f"Backend: {BASE}")
+    test_categories()
+    token = test_feed_and_images()
+    if token:
+        test_ai_generate(token)
+    else:
+        record("ai_generate_Misteri", False, "no token from feed step")
+    test_regression()
+    test_scheduler_log()
+
+    print("\n" + "=" * 60)
+    print(f"PASS: {len(PASS)}    FAIL: {len(FAIL)}")
+    if FAIL:
+        print("\nFailures:")
+        for f in FAIL:
+            print(" - " + f)
+        sys.exit(1)
+    sys.exit(0)

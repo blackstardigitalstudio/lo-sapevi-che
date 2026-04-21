@@ -160,6 +160,88 @@ backend:
           Verificati 138/138 URL Unsplash che ritornano HTTP 200. Verificati
           78 URL distinti salvati nel DB: tutti mappati alla libreria corrente.
 
+  - task: "4 new categories (Invenzioni/Disastri/Religioni/Misteri) + expanded sub_categories"
+    implemented: true
+    working: true
+    file: "backend/seed_facts.py, backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: |
+          Regression test PASSED (36/36) via /app/backend_test.py against
+          https://sapevi-che.preview.emergentagent.com/api.
+          Verified:
+          • GET /api/categories returns exactly 29 categories (was 25).
+          • All 4 new categories (Invenzioni, Disastri, Religioni, Misteri)
+            present with non-empty subcategories (5, 5, 7, 5 respectively).
+          • Cucina now has 5 sub-cats; Animali now has 5 sub-cats.
+          • Register user w/ interests=[Invenzioni,Misteri] → /api/feed?limit=20
+            returns only those categories, every fact has valid image_url.
+          • Sample 5 random image URLs → all HTTP 200.
+          • Fresh user w/ interests=[Invenzioni] → feed returns ONLY Invenzioni
+            facts (strict category filter working).
+
+  - task: "AI generation for new categories (/api/facts/generate)"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: |
+          POST /api/facts/generate {category:"Misteri"} → 200, returned a
+          valid Italian AI fact ("Il manoscritto Voynich: il libro che nessuno
+          può leggere da..."). Claude Sonnet 4.5 integration works with the
+          4 new categories.
+
+  - task: "Background AI prefill scheduler (APScheduler 12h · batch=10 · cap=1000)"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: |
+          Verified startup log: "[prefill] scheduler started: every 12h ·
+          batch=10 · cap=1000" present in /var/log/supervisor/backend.err.log.
+          First run executed at 15:07:03 UTC (next_run_time=startup+2min as
+          coded) and added 10 facts across 10 under-represented categories;
+          DB total grew from 131 → 141 → 142 during tests.
+          GET /api/health reports facts=142 (≥133 regression threshold OK).
+
+  - task: "Regression: register + security-question reset flow + checkin + /auth/me"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: |
+          All previously-passing endpoints still PASS. Covered:
+          • /auth/register: 422 when security_question/answer missing; 200 with
+            has_security_question=true when provided.
+          • /auth/forgot/question: 200 happy, 404 unknown email, returns NEW
+            question after /auth/security-question update.
+          • /auth/forgot/reset: wrong → 401, correct normalized (" PLUTO ")
+            → 200 with token; old pwd login → 401, new pwd login → 200.
+          • /auth/security-question: 401 w/o token, 401 wrong current_password,
+            200 on success.
+          • /auth/me: has_security_question bool correct.
+          • /auth/checkin: 200, returns streak_days/best_streak/trophies/new_trophies.
+          • /health: ok=true, facts=142 (≥133).
+
 frontend:
   - task: "Registration with security question + Forgot password flow"
     implemented: true
@@ -230,18 +312,23 @@ agent_communication:
       utente sul frontend.
   - agent: "testing"
     message: |
-      Backend testing completed successfully — 17/17 tests PASSED in
-      /app/backend_test.py against http://localhost:8001/api.
-      All new password-recovery-via-security-question endpoints work as
-      specified:
-        • POST /api/auth/register enforces security_question/security_answer (422 if missing).
-        • POST /api/auth/forgot/question returns 200 (happy), 404 (unknown email), 404 with Italian
-          guidance (legacy user without question).
-        • POST /api/auth/forgot/reset verifies normalized answer (case + whitespace insensitive),
-          rejects wrong answer (401), enforces min password length (422), issues new token on success,
-          and invalidates old password (login OLD → 401).
-        • POST /api/auth/security-question requires auth (401), requires correct current_password
-          ("Password attuale non corretta"), persists new question retrievable via forgot/question.
-      Regression checks: /api/auth/me returns has_security_question boolean; /api/feed?limit=20
-      returns 20 facts with valid image_url; /api/facts/generate (Claude Sonnet 4.5) returned a
-      valid Italian fact for category=Scienza. No critical or minor issues found on backend.
+      Regression after adding 3 features (29 categories, extended sub_categories,
+      APScheduler prefill). 36/36 tests PASSED in /app/backend_test.py against
+      https://sapevi-che.preview.emergentagent.com/api.
+      Highlights:
+        • GET /api/categories → 29 categories; Invenzioni/Disastri/Religioni/Misteri
+          present with 5/5/7/5 subcategories; Cucina + Animali each have 5 subs.
+        • POST /api/auth/register with interests=[Invenzioni,Misteri] +
+          security_question/security_answer → 200.
+        • GET /api/feed?limit=20 returns only selected categories; every fact has
+          a valid image_url; 5/5 sampled images return HTTP 200.
+        • POST /api/facts/generate {category:"Misteri"} → 200 with valid AI fact
+          (Claude Sonnet 4.5 works with new categories).
+        • Regression suite (register 422 w/o Q/A, forgot/question 200/404,
+          forgot/reset 401 wrong + 200 normalized, set-security-question 401/200,
+          /auth/me has_security_question bool, /auth/checkin streak, /health with
+          facts=142 ≥133) all GREEN.
+        • APScheduler startup log verified:
+          "[prefill] scheduler started: every 12h · batch=10 · cap=1000".
+          First run already executed (+10 facts → DB=141/1000).
+      No critical or minor issues found on backend.

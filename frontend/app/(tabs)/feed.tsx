@@ -19,9 +19,12 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import NetInfo from "@react-native-community/netinfo";
 import { api, theme } from "../../src/lib/api";
 import { useAuth } from "../../src/context/AuthContext";
 import { TrophyModal, Trophy } from "../../src/components/TrophyModal";
+import { saveFeedCache, loadFeedCache } from "../../src/lib/feedCache";
+import { FeedSkeleton } from "../../src/components/FeedSkeleton";
 
 const { height } = Dimensions.get("window");
 
@@ -50,6 +53,8 @@ export default function Feed() {
   const [cardHeight, setCardHeight] = useState(defaultH);
   const [generating, setGenerating] = useState(false);
   const [newTrophies, setNewTrophies] = useState<Trophy[]>([]);
+  const [isOffline, setIsOffline] = useState(false);
+  const [usingCache, setUsingCache] = useState(false);
 
   const onShareFact = async (fact: Fact) => {
     try {
@@ -63,17 +68,54 @@ export default function Feed() {
   const loadFeed = useCallback(async () => {
     try {
       const res = await api.feed(20);
-      setFacts(res.facts);
+      const fetched: Fact[] = res?.facts || [];
+      setFacts(fetched);
+      setUsingCache(false);
+      setIsOffline(false);
+      // Save to cache (max 50) for offline fallback
+      if (fetched.length > 0) {
+        saveFeedCache(fetched as any);
+      }
     } catch {
+      // Network or server error → fall back to cache if we don't already have data
+      try {
+        const cached = await loadFeedCache();
+        if (cached.facts.length > 0) {
+          setFacts((prev) => (prev.length === 0 ? (cached.facts as Fact[]) : prev));
+          setUsingCache(true);
+          setIsOffline(true);
+        }
+      } catch {}
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   }, []);
 
+  // Initial load: hydrate from cache immediately, then fetch fresh
   useEffect(() => {
-    loadFeed();
+    (async () => {
+      const cached = await loadFeedCache();
+      if (cached.facts.length > 0) {
+        setFacts(cached.facts as Fact[]);
+        setUsingCache(true);
+        setLoading(false);
+      }
+      loadFeed();
+    })();
   }, [loadFeed]);
+
+  // Auto-refresh when connectivity is restored
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      const online = !!state.isConnected;
+      setIsOffline(!online);
+      if (online && usingCache) {
+        loadFeed();
+      }
+    });
+    return () => unsubscribe();
+  }, [loadFeed, usingCache]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -155,7 +197,7 @@ export default function Feed() {
   if (loading) {
     return (
       <View style={styles.loader} testID="feed-loading">
-        <ActivityIndicator size="large" color={theme.primary} />
+        <FeedSkeleton height={cardHeight} />
       </View>
     );
   }
@@ -169,6 +211,16 @@ export default function Feed() {
         if (h > 0 && Math.abs(h - cardHeight) > 1) setCardHeight(h);
       }}
     >
+      {isOffline && (
+        <SafeAreaView edges={["top"]} style={styles.offlineBanner} pointerEvents="box-none">
+          <View style={styles.offlineBannerInner}>
+            <Ionicons name="cloud-offline" size={16} color={theme.bg} />
+            <Text style={styles.offlineBannerText}>
+              Modalità offline · stai vedendo gli ultimi fatti salvati
+            </Text>
+          </View>
+        </SafeAreaView>
+      )}
       <FlatList
         data={facts}
         keyExtractor={(it) => it.id}
@@ -193,11 +245,27 @@ export default function Feed() {
         }
         ListEmptyComponent={
           <View style={[styles.empty, { height: cardHeight }]}>
-            <Ionicons name="sparkles-outline" size={48} color={theme.primary} />
+            <Ionicons name="sparkles-outline" size={64} color={theme.primary} />
             <Text style={styles.emptyTitle}>Hai letto tutto!</Text>
             <Text style={styles.emptyText}>
-              Tocca il pulsante ✨ per generare nuove curiosità con l'AI
+              Tocca il pulsante qui sotto per generare una nuova curiosità con l'AI
             </Text>
+            <TouchableOpacity
+              testID="empty-generate-btn"
+              style={styles.emptyBtn}
+              onPress={onGenerate}
+              disabled={generating}
+              activeOpacity={0.85}
+            >
+              {generating ? (
+                <ActivityIndicator color={theme.bg} />
+              ) : (
+                <>
+                  <Ionicons name="sparkles" size={18} color={theme.bg} />
+                  <Text style={styles.emptyBtnText}>Genera con AI</Text>
+                </>
+              )}
+            </TouchableOpacity>
           </View>
         }
       />
@@ -460,9 +528,39 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.border,
   },
-  empty: { alignItems: "center", justifyContent: "center", padding: 32, gap: 12 },
+  empty: { alignItems: "center", justifyContent: "center", padding: 32, gap: 14 },
   emptyTitle: { color: theme.text, fontSize: 22, fontWeight: "300", fontStyle: "italic" },
-  emptyText: { color: theme.textMuted, textAlign: "center" },
+  emptyText: { color: theme.textMuted, textAlign: "center", lineHeight: 20 },
+  emptyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: theme.primary,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 999,
+    marginTop: 10,
+    minWidth: 180,
+    justifyContent: "center",
+  },
+  emptyBtnText: { color: theme.bg, fontWeight: "700", fontSize: 15 },
+  offlineBanner: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  offlineBannerInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: theme.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    justifyContent: "center",
+  },
+  offlineBannerText: { color: theme.bg, fontSize: 12, fontWeight: "600", flexShrink: 1 },
   fabWrap: {
     position: "absolute",
     top: 0,
