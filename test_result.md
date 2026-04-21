@@ -163,27 +163,49 @@ backend:
 frontend:
   - task: "Registration with security question + Forgot password flow"
     implemented: true
-    working: "NA"
+    working: true
     file: "frontend/app/auth/register.tsx, frontend/app/auth/forgot.tsx, frontend/app/security.tsx"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: |
-          - Register: aggiunto picker con 6 domande preimpostate + opzione
-            "Domanda personalizzata", campo risposta, hint di sicurezza.
-          - Login: aggiunto link "Password dimenticata?".
-          - /auth/forgot: flow 2-step (email → domanda, poi risposta+nuova
-            password → conferma visiva "Tutto fatto!").
-          - /security: schermata per utenti loggati per impostare/aggiornare
-            la domanda (richiede password attuale per confermare).
-          - Profile: nuovo row "Domanda di sicurezza" con badge giallo "!"
-            se has_security_question=false.
-          - securityQuestions.ts shared module con elenco 6 domande IT.
-          Tutti gli screen renderizzano correttamente (screenshot verificato
-          sul web preview 390x844).
+          Register picker (6 preset + custom), Forgot 2-step flow, /security
+          screen, Profile row with badge, securityQuestions.ts shared module.
+      - working: true
+        agent: "testing"
+        comment: |
+          Full frontend E2E verified via Playwright @ 390x844 (Expo web).
+          ALL 4 JOURNEYS PASSED:
+          • J1 Registration with preset Q: hint "Serve per recuperare la
+            password se la dimentichi." visible with shield icon. All 6
+            preset questions rendered correctly in picker modal + "Scrivi
+            una domanda personalizzata" option. Default selection is
+            preset[0]. Submit → /onboarding → /(tabs)/feed.
+          • J2 Registration with CUSTOM question: tapping "Scrivi una
+            domanda personalizzata" makes register-question-custom TextInput
+            appear. Filled "Il mio colore preferito?" + answer "blu" →
+            successful registration → /onboarding.
+          • J3 Forgot password flow: "Password dimenticata?" link visible
+            and clickable on login → /auth/forgot. Step email → reset:
+            correct question displayed ("Qual è il nome del tuo primo
+            animale domestico?"). Wrong answer "Sbagliato" → red error
+            "Risposta di sicurezza errata". Correct uppercase "PLUTO"
+            (normalization test) → "Tutto fatto!" done screen with green
+            checkmark + success text "La tua password è stata aggiornata".
+            forgot-go-login → /auth/login.
+          • J4 Profile → /security: row "Domanda di sicurezza" shown (no
+            badge since user already has Q). /security hero shows
+            "Aggiorna la tua domanda". Picker works, selecting "Qual è il
+            tuo piatto preferito?" updates select text. Submit with answer
+            "pizza" + current pwd → save succeeds (verified by subsequent
+            forgot/question returning the NEW question "piatto preferito").
+          Note: native Alert "Fatto!" was not captured by page.on("dialog")
+          — likely rendered as RN-Web modal after the listener was attached,
+          but the update itself was confirmed through API side-effect.
+          No critical UI issues found at mobile viewport 390x844.
 
 metadata:
   created_by: "main_agent"
@@ -192,9 +214,7 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "Security question & password reset endpoints"
-    - "Registration with security question + Forgot password flow"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"

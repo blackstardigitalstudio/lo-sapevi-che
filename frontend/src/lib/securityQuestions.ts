@@ -1,3 +1,10 @@
-// Single universal security question used across the app.
-// Kept as a module export so backend and frontend can stay in sync easily.
-export const SECURITY_QUESTION = "Qual è il nome del tuo primo animale domestico?";
+export const SECURITY_QUESTIONS: string[] = [
+  "Qual è il nome del tuo primo animale domestico?",
+  "In quale città sei nato/a?",
+  "Qual è il cognome da nubile di tua madre?",
+  "Qual è il nome della tua scuola elementare?",
+  "Qual è il tuo piatto preferito?",
+  "Qual è il titolo del tuo libro preferito?",
+];
+
+export const CUSTOM_QUESTION_VALUE = "__custom__";
