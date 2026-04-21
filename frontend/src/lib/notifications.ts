@@ -1,12 +1,13 @@
 /**
  * Daily random notifications for Lo Sapevi che?
  * User picks a time window; we schedule 4 notifications per day at random
- * moments within that window.
+ * moments within that window, each with a REAL fact title+body and deep-link.
  */
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { api } from "./api";
 
 const STATE_KEY = "@losapevi_notifs_state_v3";
 
@@ -106,6 +107,18 @@ export async function scheduleNotifications(windowKey: WindowKey): Promise<{
 
     await Notifications.cancelAllScheduledNotificationsAsync();
 
+    // Fetch real facts from the user's personalized feed to use as content.
+    // We ask for a big batch; if fewer facts, we cycle.
+    let factPool: Array<{ id: string; title: string; short_fact: string }> = [];
+    try {
+      const res = await api.feed(100);
+      factPool = (res?.facts || []).map((f: any) => ({
+        id: f.id,
+        title: f.title,
+        short_fact: f.short_fact,
+      }));
+    } catch {}
+
     const win = WINDOWS[windowKey];
     const now = new Date();
     let nextAt: Date | null = null;
@@ -118,11 +131,19 @@ export async function scheduleNotifications(windowKey: WindowKey): Promise<{
         date.setDate(now.getDate() + d);
         date.setHours(t.h, t.m, 0, 0);
         if (date.getTime() <= now.getTime() + 30_000) continue; // skip past
+
+        // Pick a fact from pool (cycle). Fall back to generic if pool empty.
+        const fact = factPool.length > 0 ? factPool[scheduled % factPool.length] : null;
+        const title = fact ? "Lo sapevi che…" : pick(TITLES);
+        const body = fact ? fact.title : pick(BODIES);
+        const data: any = fact ? { fact_id: fact.id } : {};
+
         try {
           await Notifications.scheduleNotificationAsync({
             content: {
-              title: pick(TITLES),
-              body: pick(BODIES),
+              title,
+              body,
+              data,
               sound: "default",
             },
             trigger: {
