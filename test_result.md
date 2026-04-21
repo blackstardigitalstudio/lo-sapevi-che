@@ -102,6 +102,41 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
+# ================ ITERATION 4 — CACHE OFFLINE + PREFILL + EXPANSION ================
+
+iteration_4:
+  backend:
+    - task: "AI background pre-generation scheduler"
+      implemented: true
+      working: true
+      file: "backend/server.py (APScheduler)"
+      comment: |
+        APScheduler AsyncIOScheduler, ogni 12h, batch=10, cap=1000.
+        Selezione categorie least-represented per bilanciamento.
+        Avvio su startup (+2min first run). Testato: +22 fatti AI in 2 run.
+    - task: "4 new categories + expanded sub-categories"
+      implemented: true
+      working: true
+      file: "backend/seed_facts.py, backend/image_library.py"
+      comment: |
+        Nuove: Invenzioni/Disastri/Religioni/Misteri. Sub-cat nuove per
+        Cucina, Animali. 20 immagini Unsplash (138+20=158) tutte 200 OK.
+  frontend:
+    - task: "Offline cache + skeleton loader + empty state CTA"
+      implemented: true
+      working: true
+      file: "frontend/app/(tabs)/feed.tsx, src/lib/feedCache.ts, src/components/FeedSkeleton.tsx"
+      comment: |
+        AsyncStorage cache (ultimi 50 fatti). NetInfo listener auto-refresh.
+        Banner offline persistente. FeedSkeleton animato al posto dello
+        spinner. Empty state con CTA "Genera con AI".
+
+test_results_iter_4:
+  - backend: 36/36 PASSED
+  - regression: 17/17 previous security-question tests still pass
+  - DB now has 142/1000 facts (scheduler running)
+
+
 user_problem_statement: |
   Lo Sapevi che? — app Expo + FastAPI + MongoDB di curiosità giornaliere.
   Aggiunta feature: recupero password tramite domanda di sicurezza.
