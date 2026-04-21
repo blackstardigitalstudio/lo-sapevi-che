@@ -28,8 +28,10 @@ Italian mobile app (Expo React Native) delivering daily curated "Did You Know?" 
 - Frontend: Expo SDK 54, expo-router, TypeScript, expo-linear-gradient, expo-notifications, AsyncStorage, expo-haptics.
 - Backend: FastAPI, Motor/MongoDB, bcrypt, PyJWT, emergentintegrations (Claude Sonnet 4.5).
 
-## Key API endpoints (all require Bearer auth except register/login)
+## Key API endpoints (all require Bearer auth except register/login/forgot)
 - `POST /api/auth/register|login`, `GET /api/auth/me`, `POST /api/auth/interests|push-token|checkin`
+- `POST /api/auth/forgot/question|forgot/reset` (no auth) — recupero password via domanda di sicurezza
+- `POST /api/auth/security-question` — imposta/aggiorna la domanda (richiede password attuale)
 - `GET /api/categories|preview|trophies|feed|facts/bookmarks|facts/liked|facts/{id}`
 - `POST /api/facts/{id}/react|bookmark|seen`
 - `POST /api/facts/generate|bulk-generate`
@@ -38,6 +40,7 @@ Italian mobile app (Expo React Native) delivering daily curated "Did You Know?" 
 ## Test Results
 - Iteration 1: 20/20 passed (MVP)
 - Iteration 2: 31/31 backend + 100% frontend (gamification + content)
+- Iteration 3: 17/17 backend (security-question password recovery)
 
 ## Next Ideas
 - Remote Expo push notifications (requires EAS projectId)
