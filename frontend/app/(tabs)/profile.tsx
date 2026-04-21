@@ -282,6 +282,23 @@ export default function Profile() {
         </TouchableOpacity>
 
         <TouchableOpacity
+          style={styles.rowBtn}
+          onPress={() => router.push("/security")}
+          testID="security-settings"
+        >
+          <Ionicons name="shield-checkmark-outline" size={20} color={theme.text} />
+          <Text style={styles.rowText}>
+            {user.has_security_question ? "Domanda di sicurezza" : "Imposta domanda di sicurezza"}
+          </Text>
+          {!user.has_security_question && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>!</Text>
+            </View>
+          )}
+          <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={[styles.rowBtn, { borderColor: theme.error }]}
           onPress={() => {
             Alert.alert("Esci", "Vuoi davvero uscire?", [
@@ -401,6 +418,16 @@ const styles = StyleSheet.create({
     borderColor: theme.border,
   },
   rowText: { color: theme.text, fontSize: 15, flex: 1 },
+  badge: {
+    backgroundColor: theme.primary,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+  },
+  badgeText: { color: theme.bg, fontWeight: "700", fontSize: 13 },
   version: { color: theme.textMuted, fontSize: 11, textAlign: "center", marginTop: 30 },
   streakCard: {
     flexDirection: "row",

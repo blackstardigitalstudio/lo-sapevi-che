@@ -41,10 +41,25 @@ export const api = {
     else await AsyncStorage.removeItem(TOKEN_KEY);
   },
   getToken: async () => AsyncStorage.getItem(TOKEN_KEY),
-  register: (payload: { email: string; password: string; name: string; interests: string[] }) =>
-    request("/auth/register", { method: "POST", body: JSON.stringify(payload) }),
+  register: (payload: {
+    email: string;
+    password: string;
+    name: string;
+    interests: string[];
+    security_question: string;
+    security_answer: string;
+  }) => request("/auth/register", { method: "POST", body: JSON.stringify(payload) }),
   login: (payload: { email: string; password: string }) =>
     request("/auth/login", { method: "POST", body: JSON.stringify(payload) }),
+  forgotQuestion: (email: string) =>
+    request("/auth/forgot/question", { method: "POST", body: JSON.stringify({ email }) }),
+  forgotReset: (payload: { email: string; security_answer: string; new_password: string }) =>
+    request("/auth/forgot/reset", { method: "POST", body: JSON.stringify(payload) }),
+  setSecurityQuestion: (payload: {
+    security_question: string;
+    security_answer: string;
+    current_password: string;
+  }) => request("/auth/security-question", { method: "POST", body: JSON.stringify(payload) }),
   me: () => request("/auth/me"),
   updateInterests: (interests: string[]) =>
     request("/auth/interests", { method: "POST", body: JSON.stringify({ interests }) }),

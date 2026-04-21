@@ -105,6 +105,12 @@ export default function Login() {
               )}
             </TouchableOpacity>
 
+            <Link href="/auth/forgot" asChild>
+              <TouchableOpacity testID="go-forgot" style={styles.forgotBtn}>
+                <Text style={styles.forgotText}>Password dimenticata?</Text>
+              </TouchableOpacity>
+            </Link>
+
             <View style={styles.footer}>
               <Text style={styles.footerText}>Non hai un account?</Text>
               <Link href="/auth/register" asChild>
@@ -157,6 +163,8 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   btnText: { color: theme.bg, fontWeight: "700", fontSize: 16, letterSpacing: 0.5 },
+  forgotBtn: { alignSelf: "center", marginTop: 14, paddingVertical: 6, paddingHorizontal: 10 },
+  forgotText: { color: theme.textMuted, fontSize: 14, textDecorationLine: "underline" },
   error: { color: theme.error, marginTop: 12, textAlign: "center" },
   footer: { flexDirection: "row", justifyContent: "center", marginTop: 20, gap: 6 },
   footerText: { color: theme.textMuted },

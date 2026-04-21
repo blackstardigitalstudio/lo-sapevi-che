@@ -122,11 +122,29 @@ class RegisterIn(BaseModel):
     password: str = Field(min_length=6)
     name: str = Field(min_length=1)
     interests: List[str] = Field(default_factory=list)
+    security_question: str = Field(min_length=3, max_length=200)
+    security_answer: str = Field(min_length=1, max_length=200)
 
 
 class LoginIn(BaseModel):
     email: EmailStr
     password: str
+
+
+class ForgotQuestionIn(BaseModel):
+    email: EmailStr
+
+
+class ForgotResetIn(BaseModel):
+    email: EmailStr
+    security_answer: str = Field(min_length=1, max_length=200)
+    new_password: str = Field(min_length=6)
+
+
+class SetSecurityQuestionIn(BaseModel):
+    security_question: str = Field(min_length=3, max_length=200)
+    security_answer: str = Field(min_length=1, max_length=200)
+    current_password: str = Field(min_length=1)
 
 
 class UpdateInterestsIn(BaseModel):
@@ -193,7 +211,13 @@ def user_to_public(u: Dict[str, Any]) -> Dict[str, Any]:
         "trophies": u.get("trophies", []),
         "ai_generated_count": u.get("ai_generated_count", 0),
         "created_at": u.get("created_at"),
+        "has_security_question": bool(u.get("security_question")),
     }
+
+
+def _normalize_answer(a: str) -> str:
+    """Normalize security answer (lowercase, strip, collapse spaces)."""
+    return " ".join((a or "").lower().strip().split())
 
 
 async def current_user(request: Request) -> Dict[str, Any]:
@@ -332,6 +356,8 @@ async def register(data: RegisterIn):
         "email": email,
         "name": data.name.strip(),
         "password_hash": hash_password(data.password),
+        "security_question": data.security_question.strip(),
+        "security_answer_hash": hash_password(_normalize_answer(data.security_answer)),
         "interests": data.interests,
         "interest_weights": weights,
         "sub_interests": {},
@@ -360,6 +386,56 @@ async def login(data: LoginIn):
         raise HTTPException(401, "Credenziali non valide")
     token = create_token(user["id"])
     return {"token": token, "user": user_to_public(user)}
+
+
+@api.post("/auth/forgot/question")
+async def forgot_question(data: ForgotQuestionIn):
+    """Return the user's security question. Generic error if no question set,
+    to avoid user enumeration."""
+    email = data.email.lower()
+    user = await db.users.find_one({"email": email}, {"_id": 0, "security_question": 1})
+    if not user or not user.get("security_question"):
+        raise HTTPException(
+            404,
+            "Nessuna domanda di sicurezza configurata per questa email. "
+            "Contatta il supporto o accedi e imposta una domanda dalle impostazioni."
+        )
+    return {"security_question": user["security_question"]}
+
+
+@api.post("/auth/forgot/reset")
+async def forgot_reset(data: ForgotResetIn):
+    """Verify security answer and reset password."""
+    email = data.email.lower()
+    user = await db.users.find_one({"email": email}, {"_id": 0})
+    if not user or not user.get("security_answer_hash"):
+        raise HTTPException(404, "Impossibile ripristinare la password per questa email.")
+    if not verify_password(_normalize_answer(data.security_answer), user["security_answer_hash"]):
+        raise HTTPException(401, "Risposta di sicurezza errata")
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"password_hash": hash_password(data.new_password)}},
+    )
+    # Issue fresh token so user can log in immediately
+    token = create_token(user["id"])
+    updated = await db.users.find_one({"id": user["id"]}, {"_id": 0})
+    return {"token": token, "user": user_to_public(updated)}
+
+
+@api.post("/auth/security-question")
+async def set_security_question(data: SetSecurityQuestionIn, user=Depends(current_user)):
+    """Authenticated user sets or updates their security question.
+    Requires current password to prevent session hijacking."""
+    if not verify_password(data.current_password, user["password_hash"]):
+        raise HTTPException(401, "Password attuale non corretta")
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {
+            "security_question": data.security_question.strip(),
+            "security_answer_hash": hash_password(_normalize_answer(data.security_answer)),
+        }},
+    )
+    return {"ok": True}
 
 
 @api.get("/auth/me")

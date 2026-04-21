@@ -13,13 +13,21 @@ type User = {
   best_streak?: number;
   trophies?: string[];
   ai_generated_count?: number;
+  has_security_question?: boolean;
   created_at: string;
 };
 
 type AuthState = {
   user: User | null | undefined; // undefined = loading, null = logged out
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string, interests: string[]) => Promise<void>;
+  register: (
+    email: string,
+    password: string,
+    name: string,
+    interests: string[],
+    security_question: string,
+    security_answer: string,
+  ) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -54,8 +62,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(res.user);
   };
 
-  const register = async (email: string, password: string, name: string, interests: string[]) => {
-    const res = await api.register({ email, password, name, interests });
+  const register = async (
+    email: string,
+    password: string,
+    name: string,
+    interests: string[],
+    security_question: string,
+    security_answer: string,
+  ) => {
+    const res = await api.register({
+      email,
+      password,
+      name,
+      interests,
+      security_question,
+      security_answer,
+    });
     await api.setToken(res.token);
     setUser(res.user);
   };
