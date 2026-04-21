@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const FEED_CACHE_KEY = "@losapevi_feed_cache_v1";
+const FEED_CACHE_KEY = "@losapevi_feed_cache_v2"; // v2: keyword-matched images
 const MAX_CACHED = 50;
 
 export type CachedFact = {

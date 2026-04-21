@@ -102,6 +102,34 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
+# ================ ITERATION 5 — IMAGE RELEVANCE + LAYOUT FIX ================
+
+iteration_5:
+  backend:
+    - task: "Keyword-based image matching (51 IT keywords)"
+      implemented: true
+      working: true
+      file: "backend/image_library.py"
+      comment: |
+        Aggiunto KEYWORD_IMAGES con 51 keywords IT (animali, spazio, natura,
+        cibo, personaggi storici). image_for_fact() ora usa regex con word
+        boundary per matchare keywords nel title/short_fact prima del
+        fallback su sub_category/category.
+        Fix: "Napoleone" non matcha più "leone" (word boundary).
+        Tutte le 221 URL verificate HTTP 200.
+        Migration startup applicata su 178 fatti esistenti.
+  frontend:
+    - task: "Fix layout feed — immagine copre tutta l'altezza"
+      implemented: true
+      working: true
+      file: "frontend/app/(tabs)/feed.tsx"
+      comment: |
+        Fix conflitto "flex:1 + height:100%" in styles.bg separando in
+        container (flex:1) e imageStyle (width:100%, height:100%).
+        L'ImageBackground ora copre tutta la card dal top al tab bar,
+        nessuno spazio nero residuo.
+
+
 # ================ ITERATION 4 — CACHE OFFLINE + PREFILL + EXPANSION ================
 
 iteration_4:

@@ -3,7 +3,7 @@
 Only URLs verified to return HTTP 200 should live here.
 """
 import hashlib
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 _CDN = "https://images.unsplash.com/"
 _PARAMS = "?w=900&q=80&auto=format&fit=crop"
@@ -330,17 +330,232 @@ SUBCATEGORY_IMAGES = {
     ],
 }
 
+# ==========================================================
+# KEYWORD-BASED IMAGE MATCHING
+# ==========================================================
+# Matched against lowercase fact title + short_fact. First keyword hit wins.
+# Keywords use Italian stems so both singular/plural & declensions match
+# (e.g. "pinguin" catches "pinguino", "pinguini"; "koala" stays as-is).
+KEYWORD_IMAGES: Dict[str, List[str]] = {
+    "pinguin": [
+        _u("photo-1551986782-d0169b3f8fa7"),
+        _u("photo-1598439210625-5067c578f3f6"),
+        _u("photo-1517783999520-f068d7431a60"),
+    ],
+    "koala": [
+        _u("photo-1551189014-fe516aed0e9e"),
+    ],
+    "polpo": [
+        _u("photo-1545671913-b89ac1b4ac10"),
+        _u("photo-1566417713940-fe7c737a9ef2"),
+        _u("photo-1580019542155-247062e19ce4"),
+    ],
+    "piovr": [
+        _u("photo-1545671913-b89ac1b4ac10"),
+        _u("photo-1566417713940-fe7c737a9ef2"),
+    ],
+    "delfin": [
+        _u("photo-1607153333879-c174d265f1d2"),
+    ],
+    "tartarug": [
+        _u("photo-1437622368342-7a3d73a34c8f"),
+        _u("photo-1591025207163-942350e47db2"),
+    ],
+    "balen": [
+        _u("photo-1568430462989-44163eb1752f"),
+        _u("photo-1551244072-5d12893278ab"),
+    ],
+    "squal": [
+        _u("photo-1560275619-4662e36fa65c"),
+    ],
+    "leone": [
+        _u("photo-1546182990-dffeafbe841d"),
+        _u("photo-1534188753412-3e26d0d618d6"),
+    ],
+    "tigre": [
+        _u("photo-1561731216-c3a4d99437d5"),
+        _u("photo-1549480017-d76466a4b7e8"),
+    ],
+    "elefant": [
+        _u("photo-1564760055775-d63b17a55c44"),
+    ],
+    "giraff": [
+        _u("photo-1547721064-da6cfb341d50"),
+        _u("photo-1534567110243-8875d64ca8ff"),
+    ],
+    "panda": [
+        _u("photo-1564349683136-77e08dba1ef7"),
+        _u("photo-1527118732049-c88155f2107c"),
+    ],
+    "orso": [
+        _u("photo-1530595467537-0b5996c41f2d"),
+        _u("photo-1446824505046-e43605ffb17f"),
+    ],
+    "lupo": [
+        _u("photo-1564466809058-bf4114d55352"),
+    ],
+    "volpe": [
+        _u("photo-1474511320723-9a56873867b5"),
+        _u("photo-1516934024742-b461fba47600"),
+    ],
+    "scimm": [
+        _u("photo-1605559424843-9e4c228bf1c2"),
+    ],
+    "serpent": [
+        _u("photo-1531386151447-fd76ad50012f"),
+    ],
+    "ape": [
+        _u("photo-1464809142576-df63ca4ed7f0"),
+        _u("photo-1568526381923-caf3fd520382"),
+    ],
+    "formica": [
+        _u("photo-1535941339077-2dd1c7963098"),
+    ],
+    "cavall": [
+        _u("photo-1527153857715-3908f2bae5e8"),
+    ],
+    "gatt": [
+        _u("photo-1514888286974-6c03e2ca1dba"),
+        _u("photo-1533738363-b7f9aef128ce"),
+    ],
+    "cane ": [
+        _u("photo-1587300003388-59208cc962cb"),
+        _u("photo-1548199973-03cce0bbc87b"),
+    ],
+    "fenicott": [
+        _u("photo-1560066984-138dadb4c035"),
+        _u("photo-1505506874110-6a7a69069a08"),
+    ],
+    "aquil": [
+        _u("photo-1551972251-12070d63502a"),
+        _u("photo-1549366021-9f761d450615"),
+    ],
+    "pesce": [
+        _u("photo-1524704654690-b56c05c78a00"),
+        _u("photo-1535591273668-578e31182c4f"),
+    ],
+    "luna": [
+        _u("photo-1532693322450-2cb5c511067d"),
+        _u("photo-1514897575457-c4db467cf78e"),
+    ],
+    "marte": [
+        _u("photo-1630839437035-dac17da580d0"),
+        _u("photo-1451187580459-43490279c0fa"),
+    ],
+    "saturn": [
+        _u("photo-1614314107768-6018061b5b72"),
+        _u("photo-1446776877081-d282a0f896e2"),
+    ],
+    "giove": [
+        _u("photo-1614313511387-1436a4480ebb"),
+    ],
+    "buco nero": [
+        _u("photo-1462331940025-496dfbfc7564"),
+        _u("photo-1419242902214-272b3f66ee7a"),
+    ],
+    "galass": [
+        _u("photo-1462331940025-496dfbfc7564"),
+        _u("photo-1419242902214-272b3f66ee7a"),
+    ],
+    "cometa": [
+        _u("photo-1419242902214-272b3f66ee7a"),
+    ],
+    "vulcan": [
+        _u("photo-1562184552-997c461abbe6"),
+    ],
+    "ocean": [
+        _u("photo-1505142468610-359e7d316be0"),
+        _u("photo-1507525428034-b723cf961d3e"),
+    ],
+    "deserto": [
+        _u("photo-1473580044384-7ba9967e16a0"),
+        _u("photo-1547235001-d703406d3f17"),
+    ],
+    "foresta": [
+        _u("photo-1448375240586-882707db888b"),
+        _u("photo-1441974231531-c6227db76b6e"),
+    ],
+    "montagn": [
+        _u("photo-1464822759023-fed622ff2c3b"),
+        _u("photo-1506905925346-21bda4d32df4"),
+    ],
+    "ghiacci": [
+        _u("photo-1517299321609-52687d1bc55a"),
+    ],
+    "pizza": [
+        _u("photo-1513104890138-7c749659a591"),
+        _u("photo-1574071318508-1cdbab80d002"),
+    ],
+    "pasta": [
+        _u("photo-1598866594230-a7c12756260f"),
+        _u("photo-1551892374-ecf8754cf8b0"),
+    ],
+    "caffè": [
+        _u("photo-1495474472287-4d71bcdd2085"),
+        _u("photo-1509042239860-f550ce710b93"),
+    ],
+    "cioccolat": [
+        _u("photo-1511381939415-e44015466834"),
+    ],
+    "vino": [
+        _u("photo-1510812431401-41d2bd2722f3"),
+        _u("photo-1553361371-9b22f78e8b1d"),
+    ],
+    "leonardo": [
+        _u("photo-1578926288207-a90a5366759d"),
+    ],
+    "napoleon": [
+        _u("photo-1555848962-6e79363ec58f"),
+    ],
+    "piramid": [
+        _u("photo-1568667256549-094345857637"),
+    ],
+    "colosseo": [
+        _u("photo-1552832230-c0197dd311b5"),
+    ],
+    "titanic": [
+        _u("photo-1569091791842-7cfb64e04797"),
+    ],
+}
+
 _FALLBACK = CATEGORY_IMAGES["Spazio"]
 
 
 def image_for_fact(category: str, seed: str, sub_category: Optional[str] = None) -> str:
-    """Pick image preferring sub-category pool, fallback to category."""
-    if sub_category and sub_category in SUBCATEGORY_IMAGES:
+    """Pick the most relevant image.
+
+    Priority:
+      1. Keyword match against the seed text (e.g. title / short_fact) — picks
+         an image that actually matches the subject of the fact (penguin, koala, etc).
+      2. Sub-category pool (brands / themes).
+      3. Category pool.
+      4. Global fallback.
+    """
+    import re
+    lowered = str(seed).lower()
+    pool: Optional[List[str]] = None
+
+    # 1) Keyword match — use word boundaries to avoid false positives
+    #    like "napoleone" matching "leone".
+    for kw, urls in KEYWORD_IMAGES.items():
+        # Build a regex that requires the keyword to start on a word boundary
+        # (keyword may be a stem like "pinguin" so it matches "pinguini" too).
+        pattern = r"\b" + re.escape(kw.rstrip())
+        if re.search(pattern, lowered):
+            pool = urls
+            break
+
+    # 2) Sub-category
+    if pool is None and sub_category and sub_category in SUBCATEGORY_IMAGES:
         pool = SUBCATEGORY_IMAGES[sub_category]
-    else:
+
+    # 3) Category
+    if pool is None:
         pool = CATEGORY_IMAGES.get(category, _FALLBACK)
+
     if not pool:
         pool = _FALLBACK
+
     h = int(hashlib.md5(str(seed).encode("utf-8")).hexdigest()[:8], 16)
     return pool[h % len(pool)]
 

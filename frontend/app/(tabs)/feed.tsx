@@ -349,7 +349,12 @@ function DoubleTapCard({
       style={{ height: h, width: "100%" }}
       testID={`fact-card-${fact.id}`}
     >
-      <ImageBackground source={{ uri: fact.image_url }} style={styles.bg} resizeMode="cover">
+      <ImageBackground
+        source={{ uri: fact.image_url }}
+        style={styles.bg}
+        imageStyle={styles.bgImage}
+        resizeMode="cover"
+      >
         <LinearGradient
           colors={["rgba(5,6,10,0.65)", "rgba(5,6,10,0.35)", "rgba(5,6,10,0.98)"]}
           locations={[0, 0.35, 0.9]}
@@ -451,7 +456,18 @@ function DoubleTapCard({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.bg },
   loader: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: theme.bg },
-  bg: { flex: 1, width: "100%", height: "100%" },
+  bg: {
+    flex: 1,
+    width: "100%",
+    backgroundColor: theme.bg,
+  },
+  bgImage: {
+    // Ensure the underlying <Image> inside <ImageBackground> truly fills the card.
+    // Using explicit absolute fill avoids "flex:1 + height:100%" conflicts on RN Web.
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
+  },
   cardContent: { flex: 1, padding: 20, justifyContent: "space-between" },
   topRow: { flexDirection: "row", gap: 8, alignItems: "center" },
   pill: {
