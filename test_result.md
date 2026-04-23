@@ -409,10 +409,132 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "Trophy names localization in Profile (pass lang to /api/trophies)"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
+
+iteration_8_frontend_tests:
+  - task: "Language picker on Login screen (compact)"
+    implemented: true
+    working: true
+    file: "frontend/app/auth/login.tsx, frontend/src/components/LanguagePicker.tsx"
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: |
+          Verified @ 390x844:
+          • Globe button opens modal with IT/EN/ES + flags + checkmark on active.
+          • EN → login-submit text becomes "Sign in".
+          • ES → "Entrar". IT → "Accedi".
+          • Picker button updates with current flag+code (🇮🇹 IT).
+  - task: "Language picker on Register screen"
+    implemented: true
+    working: true
+    file: "frontend/app/auth/register.tsx"
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: |
+          Register screen has LanguagePicker(compact); toggling EN/IT works
+          and body text localizes. Minor: Playwright strict-mode violation
+          because on expo-web the prior Login screen remains mounted in the
+          stack (2 elements with same testID). Not user-visible — only a
+          test-infra quirk. Using .first() bypasses.
+  - task: "Full login/onboarding flow with language sync"
+    implemented: true
+    working: true
+    file: "frontend/app/onboarding.tsx, frontend/app/(tabs)/*"
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: |
+          Registered TestLang_ziwdw8@example.com / Pass1234 (answer "pluto").
+          Register → /onboarding (Italian, since default lang=it at registration).
+          Tabs bottom: Feed/Saved/Profile localize correctly when user switches
+          language from Profile (verified EN: "Facts read"/"Liked"/"Saved"/
+          "TROPHIES"/"TOP INTERESTS"; ES: "Curiosidades leídas"/"Gustan"/
+          "Guardados"/"TROFEOS"/"TEMAS FAVORITOS"). Backend sync POST
+          /auth/language confirmed via LanguagePicker.select().
+  - task: "Profile trophy name localization"
+    implemented: false
+    working: false
+    file: "frontend/app/(tabs)/profile.tsx (line 53)"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "testing"
+        comment: |
+          CRITICAL BUG per review priority #3 and #4:
+          • Profile page calls `api.trophies()` WITHOUT the lang argument
+            (profile.tsx line 53: `api.trophies().then(setTrophies)`).
+          • Backend /api/trophies?lang=es|en returns localized names correctly
+            (verified in iteration_8 backend tests).
+          • Result: Trophy grid always shows Italian names
+            ("Primo passo", "Curioso", "Studioso", ...) even when UI language
+            is EN ("First step") or ES ("Primer paso").
+          Fix: pass `i18n.language` (from useTranslation) to api.trophies(lang).
+          Must also re-fetch when language changes.
+  - task: "Feed language filter (IT fallback) + no crashes"
+    implemented: true
+    working: true
+    file: "frontend/app/(tabs)/feed.tsx"
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: |
+          • Feed loads in both EN (after switch) and IT with 2.7–3 KB of body
+            content, fact cards, images — no empty state, no 500.
+          • Since DB only has IT facts, content remains IT even when UI is EN,
+            which is the expected fallback behavior.
+  - task: "Like/Dislike/Bookmark + Saved"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/(tabs)/feed.tsx, frontend/app/(tabs)/saved.tsx"
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: |
+          Playwright could not locate like/dislike/bookmark buttons because
+          their testIDs are dynamic: `like-{factId}`, `dislike-{factId}`,
+          `bookmark-{factId}` (not `feed-like` etc). Visually (screenshot
+          captured), feed cards render correctly with no crash. Saved tab
+          shows proper Italian empty state "Nessun preferito ancora." with
+          heart-CTA. Functional behavior of /react new_sub_weight was
+          verified in backend tests (iteration_8_backend_tests); any
+          remaining UI verification requires running a click on the dynamic
+          testID first. Recommend: add stable `feed-like`/`feed-bookmark`
+          testIDs to the TOP card for easier automation, OR test with the
+          dynamic selector after reading feed data.
+  - task: "Persistent auth on reload"
+    implemented: true
+    working: true
+    file: "frontend/src/context/AuthContext.tsx"
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: |
+          Reload while logged-in on /saved kept user authenticated (URL
+          remained /saved, no redirect to /auth/login).
+  - task: "Regression: password visibility toggle, forgot flow entry, onboarding drill-down"
+    implemented: true
+    working: true
+    file: "frontend/src/components/PasswordInput.tsx, frontend/app/auth/{login,forgot}.tsx, frontend/app/onboarding.tsx"
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: |
+          Login password field uses PasswordInput (eye icon) — verified via
+          component usage in login.tsx; covered in iteration_6 tests.
+          Forgot link visible on login as "Password dimenticata?" (via
+          testID go-forgot) — link route /auth/forgot is reachable. Full
+          forgot E2E already verified in prior iteration.
+          Onboarding screen rendered Italian title "Cosa ti affascina?"
+          + category chips with drill-down for sub-categories (unchanged
+          from earlier pass-through tests).
 
 iteration_8_backend_tests:
   - task: "POST /api/auth/language (it|en|es, default it)"
@@ -576,6 +698,53 @@ agent_communication:
       ✅ GET /facts/liked → returns liked facts after /react like
       ✅ /auth/checkin → 200 with streak_days
       ✅ /preview → 29 entries with category + image_url
+  - agent: "testing"
+    message: |
+      === ITERATION 8 — Frontend E2E Test Results ===
+      Target: https://sapevi-che.preview.emergentagent.com/ @ 390x844
+      Test user registered live: testlang_ziwdw8@example.com / Pass1234
+
+      PASSING:
+      ✅ Login language picker — IT/EN/ES toggle working; CTA updates
+         ("Accedi"/"Sign in"/"Entrar"); flag+code updates.
+      ✅ Register language picker — toggles successfully.
+      ✅ Register flow — new user created; redirected to /onboarding.
+      ✅ Profile language sync — Spanish & English labels localize (Perfil,
+         Curiosidades leídas, Gustan, Guardados, TROFEOS, TEMAS FAVORITOS /
+         Profile, Facts read, Liked, Saved, TROPHIES, TOP INTERESTS).
+      ✅ Feed loads in both IT and EN without crash (IT fallback OK).
+      ✅ Persistent auth — reload on /saved keeps session.
+      ✅ Tabs localized — Scopri/Salvati/Profilo ↔ Feed/Saved/Profile.
+
+      CRITICAL ISSUE:
+      ❌ Trophy NAMES are NOT localized in Profile. In EN and ES views,
+         the trophy grid still shows Italian names ("Primo passo",
+         "Curioso", "Studioso", ...) instead of "First step"/"Primer paso".
+         Root cause: profile.tsx line 53 calls `api.trophies()` without
+         the `lang` argument. api.trophies(lang) exists and backend
+         /api/trophies?lang=es correctly returns "Primer paso" (verified
+         in iteration_8 backend tests).
+         FIX: replace with `api.trophies(i18n.language).then(setTrophies)`
+         and add `i18n.language` to the useFocusEffect dependency array so
+         trophies refetch on language change.
+
+      NOT TESTED (testID mismatch, not a bug per se):
+      ⚠️ Like / Dislike / Bookmark buttons use dynamic testIDs
+         (`like-{factId}`, `dislike-{factId}`, `bookmark-{factId}`) so the
+         generic `feed-like` selector didn't match. Feed cards render
+         correctly and no JS crashes were observed; the /react endpoint
+         with new_sub_weight was fully verified in backend tests.
+         RECOMMEND: run a targeted UI test that first reads a card's ID
+         from the feed-screen container, or add a stable testID on the
+         visible (top) card's action buttons.
+
+      MINOR (non-blocking):
+      • Register screen Playwright picked up 2 `lang-picker-compact`
+        elements because expo-web keeps the previous route mounted in the
+        stack; not user-facing.
+      • Many console warnings from RN-Web deprecations (shadow*, textShadow*,
+        pointerEvents, TouchableWithoutFeedback) — framework noise, ignore.
+
       ✅ /facts/generate (user lang=es, category="Ciencia") → 400 (canonical IT enforced);
          (category="Scienza") → 200 with language="es" via Claude Sonnet 4.5 (no 503)
 
