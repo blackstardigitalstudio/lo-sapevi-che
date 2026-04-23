@@ -547,6 +547,40 @@ agent_communication:
          subcategories.
       
       No critical issues. All 17 backend tests passed on first run.
+  - agent: "testing"
+    message: |
+      === POST-REFACTOR REGRESSION — Backend Testing Complete (18/18 PASS) ===
+      Target: https://sapevi-che.preview.emergentagent.com/api
+      Context: Refactor of monolithic server.py into models.py / deps.py /
+      services.py (+ existing i18n.py, image_library.py). Regression sweep
+      confirms functional behavior is IDENTICAL to pre-refactor baseline.
+
+      Executed /app/backend_test.py (18 tests, includes new bookmark/liked coverage):
+      ✅ /health → ok:true, facts≥200
+      ✅ /auth/register full payload → 200 language:"it"; missing security fields → 422
+      ✅ /auth/login → 200 with token+user
+      ✅ /auth/forgot/question → 200 happy, 404 unknown
+      ✅ /auth/forgot/reset → 401 wrong answer, 200 with normalized "  FIDO  " (trim+lower+collapse)
+      ✅ /auth/security-question → 401 w/o token, 401 wrong pwd, 200 success
+      ✅ /auth/me → has_security_question bool + language field present
+      ✅ /auth/language → 422 invalid "xx", 401 w/o token, 200 with "en"; /auth/me reflects "en"
+      ✅ GET /categories → 29 entries with name+label+icon+has_subcategories+subcategories
+      ✅ GET /categories?lang=en → Scienza=Science, Storia=History, Misteri=Mysteries
+      ✅ GET /trophies?lang=es → Primer paso, "Lee tu primera curiosidad.", 10 trophies
+      ✅ GET /subcategories/Scienza → 200; /subcategories/NopeCat → 404
+      ✅ GET /feed (user lang=it) → non-empty, all facts language=="it"
+      ✅ GET /feed (user lang=en) → non-empty via IT fallback, no 500
+      ✅ POST /facts/{id}/react like → returns new_weight + new_sub_weight (numeric)
+      ✅ POST /facts/{id}/react dislike → returns both weights; pick_weighted stable across iterations
+      ✅ POST /facts/{id}/bookmark → toggle on/off; GET /facts/bookmarks reflects state
+      ✅ GET /facts/liked → returns liked facts after /react like
+      ✅ /auth/checkin → 200 with streak_days
+      ✅ /preview → 29 entries with category + image_url
+      ✅ /facts/generate (user lang=es, category="Ciencia") → 400 (canonical IT enforced);
+         (category="Scienza") → 200 with language="es" via Claude Sonnet 4.5 (no 503)
+
+      No broken endpoints. Refactor into models/deps/services preserves all
+      functionality. No regressions detected.
   - agent: "main"
     message: |
       === ITERATION 8 — Multilingual E2E + Personalization v2 ===

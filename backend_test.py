@@ -340,6 +340,36 @@ def test_subcategories():
     assert r.status_code == 404
 
 
+def test_bookmark_and_liked():
+    data, _ = register_user(interests=["Scienza", "Storia"], name="Elena Conte")
+    token = data["token"]
+    rf = requests.get(f"{API}/feed?limit=5", headers=auth_hdr(token), timeout=20)
+    assert rf.status_code == 200
+    facts = rf.json().get("facts", [])
+    assert len(facts) >= 2
+    fid = facts[0]["id"]
+    # Bookmark ON
+    r = requests.post(f"{API}/facts/{fid}/bookmark", headers=auth_hdr(token), timeout=10)
+    assert r.status_code == 200 and r.json().get("bookmarked") is True, r.text
+    # GET bookmarks
+    r = requests.get(f"{API}/facts/bookmarks", headers=auth_hdr(token), timeout=10)
+    assert r.status_code == 200
+    bms = r.json().get("facts", [])
+    assert any(f["id"] == fid for f in bms), f"bookmark id not in list: {bms}"
+    # Toggle OFF
+    r = requests.post(f"{API}/facts/{fid}/bookmark", headers=auth_hdr(token), timeout=10)
+    assert r.status_code == 200 and r.json().get("bookmarked") is False
+    # Like a fact then check /facts/liked
+    fid2 = facts[1]["id"]
+    r = requests.post(f"{API}/facts/{fid2}/react", json={"action": "like"},
+                      headers=auth_hdr(token), timeout=10)
+    assert r.status_code == 200
+    r = requests.get(f"{API}/facts/liked", headers=auth_hdr(token), timeout=10)
+    assert r.status_code == 200
+    liked = r.json().get("facts", [])
+    assert any(f["id"] == fid2 for f in liked), f"liked id not in list: {liked}"
+
+
 if __name__ == "__main__":
     tests = [
         ("health", test_health),
@@ -359,6 +389,7 @@ if __name__ == "__main__":
         ("me_fields", test_me_fields),
         ("preview", test_preview),
         ("subcategories", test_subcategories),
+        ("bookmark_and_liked", test_bookmark_and_liked),
     ]
     for name, fn in tests:
         run(name, fn)
