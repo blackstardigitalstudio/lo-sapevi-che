@@ -102,6 +102,122 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
+# ================ ITERATION 8 — MULTILINGUE BACKEND + PERSONALIZATION v2 + REFACTOR ================
+
+iteration_8:
+  backend:
+    - task: "Multilingual backend content (language, categories?lang, trophies?lang)"
+      implemented: true
+      working: true
+      file: "backend/i18n.py (new), backend/server.py, backend/models.py, backend/deps.py, backend/services.py"
+      stuck_count: 0
+      priority: "high"
+      needs_retesting: false
+      status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            - Added POST /api/auth/language {it|en|es} — updates user.language.
+            - GET /api/categories?lang= returns canonical `name` + localized `label`.
+            - GET /api/trophies?lang= returns localized name/desc.
+            - generate_fact_ai(category, language) — Claude Sonnet 4.5 prompted in
+              user lang; saved facts get `language` field.
+            - Legacy migration: 235 facts backfilled language="it".
+            - Added idx on facts.language.
+        - working: true
+          agent: "testing"
+          comment: |
+            18/18 backend tests PASSED. Language endpoints working, categories/trophies
+            localization correct in EN/ES/IT, Claude generated a valid Spanish fact
+            for category=Scienza with language:"es".
+    - task: "Feed language filter with fallback"
+      implemented: true
+      working: true
+      file: "backend/server.py"
+      stuck_count: 0
+      priority: "high"
+      needs_retesting: false
+      status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            /feed filters by user.language. 3-tier fallback: 1) exclude seen+disliked;
+            2) allow seen within same lang; 3) non-IT users fall back to IT facts
+            if no content in their language yet.
+        - working: true
+          agent: "testing"
+          comment: |
+            Verified feed returns IT facts for lang=it; for lang=en (no EN facts yet)
+            falls back to IT without 500 error. All returned facts carry language field.
+    - task: "Personalization v2 — sub_interest_weights + diversity cap"
+      implemented: true
+      working: true
+      file: "backend/services.py (pick_weighted), backend/server.py (/facts/{id}/react)"
+      stuck_count: 0
+      priority: "medium"
+      needs_retesting: false
+      status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            react endpoint now updates BOTH interest_weights AND sub_interest_weights:
+            like→+0.15 cat +0.25 sub; dislike→-0.20 cat -0.35 sub.
+            pick_weighted() scores each fact via base category weight + sub boost +
+            jitter, then applies diversity cap (max n//3 from same sub_category).
+        - working: true
+          agent: "testing"
+          comment: |
+            /react returns {ok, new_weight, new_sub_weight, new_trophies}. Sequential
+            likes/dislikes don't crash feed. Sub-category bonuses reflected in pick_weighted.
+    - task: "Refactor server.py into models/deps/services modules"
+      implemented: true
+      working: true
+      file: "backend/models.py (new), backend/deps.py (new), backend/services.py (new), backend/server.py (trimmed from 1055→647 lines)"
+      stuck_count: 0
+      priority: "medium"
+      needs_retesting: false
+      status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            Split monolithic server.py into:
+            - models.py (62 lines): all Pydantic schemas
+            - deps.py (83 lines): DB client, hash/verify pwd, JWT create/decode, current_user
+            - services.py (275 lines): TROPHIES, compute/update trophies,
+              generate_fact_ai, prefill scheduler, pick_weighted
+            - server.py (647 lines): FastAPI app + routes + startup/shutdown only
+        - working: true
+          agent: "testing"
+          comment: |
+            Regression suite 18/18 PASSED post-refactor. No behavior change.
+  frontend:
+    - task: "Frontend wiring for localized backend data (categories/trophies)"
+      implemented: true
+      working: true
+      file: "frontend/src/lib/api.ts, frontend/src/components/LanguagePicker.tsx, frontend/app/onboarding.tsx, frontend/app/(tabs)/profile.tsx"
+      stuck_count: 0
+      priority: "high"
+      needs_retesting: false
+      status_history:
+        - working: true
+          agent: "main"
+          comment: |
+            - api.categories(lang) / api.trophies(lang) / api.setLanguage(lang) added.
+            - LanguagePicker now POSTs /api/auth/language on change (if authenticated).
+            - Onboarding fetches categories with current i18n.language.
+            - Profile fetches trophies with current i18n.language and refetches when
+              user changes language (added i18n.language to useFocusEffect deps).
+            - Fixed duplicate ghostBtn style in profile.tsx (was causing tsc error).
+        - working: true
+          agent: "testing"
+          comment: |
+            E2E verified at 390x844: language picker works on login/register/profile;
+            UI labels localize in EN/ES; persistent auth keeps user signed in across
+            reloads; feed loads facts in the user language with fallback. After fix,
+            trophy names also localize correctly (were Italian before the i18n.language
+            dep was added to useFocusEffect).
+
+
 # ================ ITERATION 7 — MULTILINGUE (IT / EN / ES) ================
 
 iteration_7:

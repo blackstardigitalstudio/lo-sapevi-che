@@ -31,7 +31,7 @@ import {
 export default function Profile() {
   const router = useRouter();
   const { user, logout, refresh } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [notifEnabled, setNotifEnabled] = useState<boolean>(true);
   const [notifWindow, setNotifWindow] = useState<WindowKey>("sorpresa");
   const [nextAt, setNextAt] = useState<string | undefined>(undefined);
@@ -50,9 +50,9 @@ export default function Profile() {
   useFocusEffect(
     useCallback(() => {
       refresh();
-      api.trophies().then(setTrophies).catch(() => {});
+      api.trophies(i18n.language).then(setTrophies).catch(() => {});
       loadNotifState();
-    }, [])
+    }, [i18n.language])
   );
 
   const shareProfile = async () => {
