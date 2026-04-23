@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { api } from "../lib/api";
+import { api, ApiError } from "../lib/api";
 
 type User = {
   id: string;
@@ -37,18 +37,44 @@ const Ctx = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null | undefined>(undefined);
 
+  /**
+   * Robust refresh:
+   *  - If there's no token saved → user is logged out.
+   *  - If there IS a token:
+   *    1. Load the cached user immediately so the UI doesn't bounce to login.
+   *    2. Try to fetch fresh /auth/me in the background.
+   *       - 200 → update state + cache.
+   *       - 401 → token is invalid, force logout.
+   *       - Other errors (network offline, 5xx, timeout) → keep the cached user.
+   */
   const refresh = async () => {
+    const token = await api.getToken();
+    if (!token) {
+      await api.setCachedUser(null);
+      setUser(null);
+      return;
+    }
+
+    // Hydrate from cache first (instant, no network) so users never see the
+    // login screen after a cold-start when a valid session already exists.
+    const cached = await api.getCachedUser();
+    if (cached) setUser(cached);
+
     try {
-      const token = await api.getToken();
-      if (!token) {
+      const me = await api.me();
+      setUser(me);
+      await api.setCachedUser(me);
+    } catch (err: any) {
+      if (err instanceof ApiError && err.status === 401) {
+        // Real auth failure: token no longer valid on the server.
+        await api.setToken(null);
+        await api.setCachedUser(null);
         setUser(null);
         return;
       }
-      const me = await api.me();
-      setUser(me);
-    } catch {
-      await api.setToken(null);
-      setUser(null);
+      // Network / server blip: keep the cached user if we have one, otherwise
+      // mark as logged-out so the login screen appears.
+      if (!cached) setUser(null);
     }
   };
 
@@ -59,6 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     const res = await api.login({ email, password });
     await api.setToken(res.token);
+    await api.setCachedUser(res.user);
     setUser(res.user);
   };
 
@@ -79,11 +106,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       security_answer,
     });
     await api.setToken(res.token);
+    await api.setCachedUser(res.user);
     setUser(res.user);
   };
 
   const logout = async () => {
     await api.setToken(null);
+    await api.setCachedUser(null);
     setUser(null);
   };
 

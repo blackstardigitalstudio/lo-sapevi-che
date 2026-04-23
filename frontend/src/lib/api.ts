@@ -2,6 +2,16 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const API_BASE = `${process.env.EXPO_PUBLIC_BACKEND_URL}/api`;
 const TOKEN_KEY = "@losapevi_token";
+const USER_CACHE_KEY = "@losapevi_user_v1";
+
+// Custom error class so callers can distinguish auth failures from network errors.
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
 
 async function authHeaders() {
   const token = await AsyncStorage.getItem(TOKEN_KEY);
@@ -14,7 +24,13 @@ async function request(path: string, opts: RequestInit = {}) {
     ...(await authHeaders()),
     ...((opts.headers as Record<string, string>) || {}),
   };
-  const res = await fetch(`${API_BASE}${path}`, { ...opts, headers });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, { ...opts, headers });
+  } catch (netErr: any) {
+    // Network-level failure (offline, DNS, timeout). Surface as ApiError with status 0.
+    throw new ApiError(netErr?.message || "Errore di rete", 0);
+  }
   const text = await res.text();
   let data: any = null;
   try {
@@ -30,7 +46,7 @@ async function request(path: string, opts: RequestInit = {}) {
         : Array.isArray(detail)
         ? detail.map((d: any) => d?.msg || JSON.stringify(d)).join(", ")
         : "Errore di rete";
-    throw new Error(message);
+    throw new ApiError(message, res.status);
   }
   return data;
 }
@@ -41,6 +57,24 @@ export const api = {
     else await AsyncStorage.removeItem(TOKEN_KEY);
   },
   getToken: async () => AsyncStorage.getItem(TOKEN_KEY),
+
+  // Local user cache: lets the app boot while offline / slow networks without
+  // forcing the user back to the login screen.
+  getCachedUser: async () => {
+    try {
+      const raw = await AsyncStorage.getItem(USER_CACHE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  },
+  setCachedUser: async (u: any | null) => {
+    try {
+      if (u) await AsyncStorage.setItem(USER_CACHE_KEY, JSON.stringify(u));
+      else await AsyncStorage.removeItem(USER_CACHE_KEY);
+    } catch {}
+  },
+
   register: (payload: {
     email: string;
     password: string;

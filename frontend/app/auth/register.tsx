@@ -19,6 +19,7 @@ import { useAuth } from "../../src/context/AuthContext";
 import { theme } from "../../src/lib/api";
 import { Ionicons } from "@expo/vector-icons";
 import { SECURITY_QUESTIONS, CUSTOM_QUESTION_VALUE } from "../../src/lib/securityQuestions";
+import { PasswordInput } from "../../src/components/PasswordInput";
 
 export default function Register() {
   const router = useRouter();
@@ -114,12 +115,9 @@ export default function Register() {
             />
 
             <Text style={styles.label}>Password</Text>
-            <TextInput
+            <PasswordInput
               testID="register-password"
-              style={styles.input}
               placeholder="Minimo 6 caratteri"
-              placeholderTextColor={theme.textMuted}
-              secureTextEntry
               value={password}
               onChangeText={setPassword}
             />

@@ -102,6 +102,29 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
+# ================ ITERATION 6 — UX: PWD visibility + Persistent auth ================
+
+iteration_6:
+  frontend:
+    - task: "Password visibility toggle (eye icon)"
+      implemented: true
+      working: true
+      file: "frontend/src/components/PasswordInput.tsx (new), login.tsx, register.tsx, forgot.tsx, security.tsx"
+      comment: |
+        Componente riutilizzabile PasswordInput con occhio-toggle.
+        Applicato a tutti e 5 i campi password dell'app.
+    - task: "Persistent auth — app rimane loggata"
+      implemented: true
+      working: true
+      file: "frontend/src/context/AuthContext.tsx, frontend/src/lib/api.ts"
+      comment: |
+        - Aggiunta cache utente AsyncStorage @losapevi_user_v1.
+        - Hydrate da cache immediatamente al mount (no flash di login).
+        - Distinzione ApiError con status code: logout reale solo su 401 esplicito.
+        - Network/server errors (offline, timeout, 5xx) → mantiene user cached.
+        - JWT TTL già 30 giorni lato backend (confermato).
+
+
 # ================ ITERATION 5 — IMAGE RELEVANCE + LAYOUT FIX ================
 
 iteration_5:

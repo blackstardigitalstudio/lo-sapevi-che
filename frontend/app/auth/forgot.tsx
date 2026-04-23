@@ -15,6 +15,7 @@ import {
 import { useRouter, Link } from "expo-router";
 import { api, theme } from "../../src/lib/api";
 import { Ionicons } from "@expo/vector-icons";
+import { PasswordInput } from "../../src/components/PasswordInput";
 
 type Step = "email" | "reset" | "done";
 
@@ -149,23 +150,17 @@ export default function Forgot() {
                 />
 
                 <Text style={styles.label}>Nuova password</Text>
-                <TextInput
+                <PasswordInput
                   testID="forgot-newpassword"
-                  style={styles.input}
                   placeholder="Minimo 6 caratteri"
-                  placeholderTextColor={theme.textMuted}
-                  secureTextEntry
                   value={newPassword}
                   onChangeText={setNewPassword}
                 />
 
                 <Text style={styles.label}>Conferma password</Text>
-                <TextInput
+                <PasswordInput
                   testID="forgot-confirmpassword"
-                  style={styles.input}
                   placeholder="Ripeti la nuova password"
-                  placeholderTextColor={theme.textMuted}
-                  secureTextEntry
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                 />

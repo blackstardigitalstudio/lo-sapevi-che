@@ -16,6 +16,7 @@ import { useRouter, Link } from "expo-router";
 import { useAuth } from "../../src/context/AuthContext";
 import { theme } from "../../src/lib/api";
 import { Ionicons } from "@expo/vector-icons";
+import { PasswordInput } from "../../src/components/PasswordInput";
 
 export default function Login() {
   const router = useRouter();
@@ -76,12 +77,9 @@ export default function Login() {
             />
 
             <Text style={styles.label}>Password</Text>
-            <TextInput
+            <PasswordInput
               testID="login-password"
-              style={styles.input}
               placeholder="•••••••"
-              placeholderTextColor={theme.textMuted}
-              secureTextEntry
               value={password}
               onChangeText={setPassword}
             />

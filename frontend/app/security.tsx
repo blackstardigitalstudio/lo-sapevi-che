@@ -21,6 +21,7 @@ import { api, theme } from "../src/lib/api";
 import { useAuth } from "../src/context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { SECURITY_QUESTIONS, CUSTOM_QUESTION_VALUE } from "../src/lib/securityQuestions";
+import { PasswordInput } from "../src/components/PasswordInput";
 
 export default function SecurityScreen() {
   const router = useRouter();
@@ -140,14 +141,11 @@ export default function SecurityScreen() {
               />
 
               <Text style={styles.label}>Password attuale</Text>
-              <TextInput
+              <PasswordInput
                 testID="security-current-password"
-                style={styles.input}
                 placeholder="Per confermare che sei tu"
-                placeholderTextColor={theme.textMuted}
                 value={currentPassword}
                 onChangeText={setCurrentPassword}
-                secureTextEntry
               />
 
               {error && <Text style={styles.error} testID="security-error">{error}</Text>}
