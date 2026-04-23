@@ -33,7 +33,7 @@ type CategoryInfo = {
 
 export default function Onboarding() {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user, refresh } = useAuth();
   const insets = useSafeAreaInsets();
   const [previews, setPreviews] = useState<Preview[]>([]);
@@ -52,7 +52,7 @@ export default function Onboarding() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    Promise.all([api.preview(), api.categories()])
+    Promise.all([api.preview(), api.categories(i18n.language)])
       .then(([pv, cats]) => {
         setPreviews(pv);
         const info: Record<string, CategoryInfo> = {};

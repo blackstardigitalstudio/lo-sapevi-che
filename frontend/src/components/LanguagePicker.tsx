@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { theme } from "../lib/api";
+import { api, theme } from "../lib/api";
 import {
   SUPPORTED,
   LANG_META,
@@ -39,6 +39,11 @@ export function LanguagePicker({ variant = "compact", onChange }: Props) {
     setOpen(false);
     if (l === lang) return;
     await changeLanguage(l);
+    // Sync to backend if the user is logged in. Silent fail if not auth'd yet.
+    try {
+      const token = await api.getToken();
+      if (token) await api.setLanguage(l);
+    } catch {}
     onChange?.(l);
   };
 

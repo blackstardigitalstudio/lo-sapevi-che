@@ -37,6 +37,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from seed_facts import SEED_FACTS, CATEGORIES, CATEGORY_EMOJI, CATEGORY_IMAGE_GROUP, IMAGE_URLS, SUB_CATEGORIES
 from seed_facts_extra import EXTRA_FACTS
 from seed_facts_v3 import V3_FACTS
+from i18n import label_for_category, label_for_trophy, LANG_PROMPT_NAME, SUPPORTED_LANGS
 from image_library import image_for_fact, first_image_for_category
 
 # ==========================================================
@@ -147,6 +148,10 @@ class SetSecurityQuestionIn(BaseModel):
     current_password: str = Field(min_length=1)
 
 
+class SetLanguageIn(BaseModel):
+    language: str = Field(pattern="^(it|en|es)$")
+
+
 class UpdateInterestsIn(BaseModel):
     interests: List[str]
 
@@ -212,6 +217,7 @@ def user_to_public(u: Dict[str, Any]) -> Dict[str, Any]:
         "ai_generated_count": u.get("ai_generated_count", 0),
         "created_at": u.get("created_at"),
         "has_security_question": bool(u.get("security_question")),
+        "language": u.get("language", "it"),
     }
 
 
@@ -482,6 +488,7 @@ async def register(data: RegisterIn):
         "last_checkin_date": None,
         "trophies": [],
         "ai_generated_count": 0,
+        "language": "it",
         "created_at": datetime.now(timezone.utc),
     }
     await db.users.insert_one(doc)
@@ -547,6 +554,17 @@ async def set_security_question(data: SetSecurityQuestionIn, user=Depends(curren
         }},
     )
     return {"ok": True}
+
+
+@api.post("/auth/language")
+async def set_user_language(data: SetLanguageIn, user=Depends(current_user)):
+    """Update the user's preferred language (used for AI fact generation & i18n labels)."""
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"language": data.language}},
+    )
+    updated = await db.users.find_one({"id": user["id"]}, {"_id": 0})
+    return {"ok": True, "user": user_to_public(updated)}
 
 
 @api.get("/auth/me")
@@ -621,10 +639,11 @@ async def daily_checkin(user=Depends(current_user)):
 # CATEGORIES & PREVIEW
 # ==========================================================
 @api.get("/categories")
-async def list_categories():
+async def list_categories(lang: str = "it"):
     return [
         {
-            "name": c,
+            "name": c,  # canonical (used as DB filter)
+            "label": label_for_category(c, lang),  # localized display
             "icon": CATEGORY_EMOJI.get(c, "sparkles"),
             "has_subcategories": c in SUB_CATEGORIES,
             "subcategories": SUB_CATEGORIES.get(c, []),
@@ -684,11 +703,17 @@ async def preview_per_category():
 
 
 @api.get("/trophies")
-async def list_trophies(user=Depends(current_user)):
+async def list_trophies(lang: str = "it", user=Depends(current_user)):
     earned = set(user.get("trophies", []))
     out = []
     for t in TROPHIES:
-        out.append({**t, "earned": t["id"] in earned})
+        loc = label_for_trophy(t["id"], lang)
+        out.append({
+            **t,
+            "name": loc["name"] or t.get("name"),
+            "desc": loc["description"] or t.get("desc"),
+            "earned": t["id"] in earned,
+        })
     return out
 
 
@@ -833,22 +858,28 @@ async def get_fact(fact_id: str, user=Depends(current_user)):
 # ==========================================================
 # AI GENERATION (Claude Sonnet 4.5 via Emergent)
 # ==========================================================
-async def generate_fact_ai(category: str) -> Optional[Dict[str, Any]]:
+async def generate_fact_ai(category: str, language: str = "it") -> Optional[Dict[str, Any]]:
     try:
         from emergentintegrations.llm.chat import LlmChat, UserMessage
     except Exception as e:
         logger.error(f"emergentintegrations import failed: {e}")
         return None
 
+    lang_name = LANG_PROMPT_NAME.get(language, "italiano")
+    format_hook = {
+        "it": "Lo sapevi che?",
+        "en": "Did you know?",
+        "es": "¿Sabías que?",
+    }.get(language, "Lo sapevi che?")
     system = (
-        "Sei un esperto divulgatore italiano. Scrivi curiosità verificate e affascinanti "
-        "nel formato 'Lo sapevi che?' Rispondi ESCLUSIVAMENTE con un JSON valido con questi campi: "
-        '{"title": "...", "short_fact": "...", "deep_dive": "...", "sources": [{"title": "...", "url": "..."}]} '
-        "Il title deve essere accattivante (max 80 caratteri). "
-        "Lo short_fact è una frase di 1-2 righe che sorprende. "
-        "Il deep_dive è un approfondimento di 3-5 frasi con dettagli storici, scientifici o curiosi. "
-        "Le sources (1-2 elementi) devono essere fonti reali e autorevoli (Wikipedia, riviste scientifiche, siti universitari, musei). "
-        "Scrivi sempre in italiano impeccabile. Non usare markdown, solo JSON puro."
+        f"You are an expert author of fun, verified trivia. Write exclusively in {lang_name}. "
+        f"Use the format '{format_hook}'. Respond ONLY with a valid JSON object with fields: "
+        '{"title": "...", "short_fact": "...", "deep_dive": "...", "sources": [{"title": "...", "url": "..."}]}. '
+        "Title must be catchy (max 80 chars). short_fact is 1-2 surprising sentences. "
+        "deep_dive is 3-5 sentences with historical, scientific or curious details. "
+        "sources (1-2 items) must be real, authoritative (Wikipedia, scientific journals, "
+        "universities, museums). "
+        f"Always write impeccably in {lang_name}. No markdown, pure JSON only."
     )
     try:
         chat = LlmChat(
@@ -857,9 +888,9 @@ async def generate_fact_ai(category: str) -> Optional[Dict[str, Any]]:
             system_message=system,
         ).with_model("anthropic", "claude-sonnet-4-5-20250929")
         prompt = (
-            f"Generami UNA nuova curiosità verificata nella categoria: '{category}'. "
-            "Evita fatti banali e cerca qualcosa di veramente interessante e poco noto. "
-            "Includi 1-2 fonti autorevoli verificabili. Rispondi SOLO con il JSON."
+            f"Generate ONE new verified curiosity for the category: '{category}'. "
+            "Avoid banal facts and look for something truly interesting and little known. "
+            f"Include 1-2 authoritative verifiable sources. Reply ONLY with the JSON. Language: {lang_name}."
         )
         resp = await chat.send_message(UserMessage(text=prompt))
         raw = (resp or "").strip()
@@ -898,7 +929,8 @@ async def generate_new_fact(data: GenerateIn, user=Depends(current_user)):
     if category not in CATEGORIES:
         raise HTTPException(400, "Categoria non valida")
 
-    ai = await generate_fact_ai(category)
+    lang = user.get("language", "it")
+    ai = await generate_fact_ai(category, lang)
     if not ai:
         raise HTTPException(503, "Generazione AI non disponibile. Riprova.")
 
@@ -913,6 +945,7 @@ async def generate_new_fact(data: GenerateIn, user=Depends(current_user)):
         "sub_category": None,
         "image_url": img_url,
         "source": "ai",
+        "language": lang,
         "created_at": datetime.now(timezone.utc),
     }
     await db.facts.insert_one(doc)
@@ -929,11 +962,12 @@ async def generate_new_fact(data: GenerateIn, user=Depends(current_user)):
 async def bulk_generate_facts(data: BulkGenerateIn, user=Depends(current_user)):
     """Generate multiple AI facts, optionally for a specific category or rotating categories."""
     cats = [data.category] * data.count if data.category else random.sample(CATEGORIES, min(data.count, len(CATEGORIES)))
+    lang = user.get("language", "it")
     created = []
     for cat in cats:
         if cat not in CATEGORIES:
             continue
-        ai = await generate_fact_ai(cat)
+        ai = await generate_fact_ai(cat, lang)
         if not ai:
             continue
         img_url = image_for_fact(cat, ai["title"], None)

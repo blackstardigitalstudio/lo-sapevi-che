@@ -94,12 +94,15 @@ export const api = {
     security_answer: string;
     current_password: string;
   }) => request("/auth/security-question", { method: "POST", body: JSON.stringify(payload) }),
+  setLanguage: (language: string) =>
+    request("/auth/language", { method: "POST", body: JSON.stringify({ language }) }),
   me: () => request("/auth/me"),
   updateInterests: (interests: string[]) =>
     request("/auth/interests", { method: "POST", body: JSON.stringify({ interests }) }),
   setPushToken: (token: string) =>
     request("/auth/push-token", { method: "POST", body: JSON.stringify({ token }) }),
-  categories: () => request("/categories"),
+  categories: (lang?: string) =>
+    request(lang ? `/categories?lang=${encodeURIComponent(lang)}` : "/categories"),
   subcategories: (category: string) => request(`/subcategories/${encodeURIComponent(category)}`),
   updateSubInterests: (sub_interests: Record<string, string[]>) =>
     request("/auth/sub-interests", { method: "POST", body: JSON.stringify({ sub_interests }) }),
@@ -116,7 +119,8 @@ export const api = {
   sendTestPush: () => request(`/notifications/send-test`, { method: "POST" }),
   checkin: () => request(`/auth/checkin`, { method: "POST" }),
   preview: () => request(`/preview`),
-  trophies: () => request(`/trophies`),
+  trophies: (lang?: string) =>
+    request(lang ? `/trophies?lang=${encodeURIComponent(lang)}` : `/trophies`),
   bulkGenerate: (count: number, category?: string) =>
     request(`/facts/bulk-generate`, {
       method: "POST",
