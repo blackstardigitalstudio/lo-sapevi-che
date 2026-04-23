@@ -604,15 +604,4 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   nextAtText: { color: theme.textMuted, fontSize: 12 },
-  ghostBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: theme.border,
-  },
-  ghostBtnText: { color: theme.primary, fontSize: 13, fontWeight: "600" },
 });

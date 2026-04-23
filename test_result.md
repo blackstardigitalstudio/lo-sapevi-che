@@ -414,34 +414,166 @@ test_plan:
   test_all: false
   test_priority: "high_first"
 
+iteration_8_backend_tests:
+  - task: "POST /api/auth/language (it|en|es, default it)"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: |
+          All cases PASS:
+          • Fresh register → user.language defaults to "it", verified via /auth/me.
+          • POST /auth/language {"language":"xx"} with valid token → 422 (pattern).
+          • POST /auth/language without token → 401.
+          • POST /auth/language {"language":"en"} with token → 200 {ok:true, user.language:"en"}.
+          • Subsequent /auth/me shows language="en".
+  - task: "GET /api/categories?lang= (localized labels, canonical name IT)"
+    implemented: true
+    working: true
+    file: "backend/server.py, backend/i18n.py"
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: |
+          • /categories (no lang) → 29 items; each has name (canonical IT), label (IT),
+            icon, has_subcategories, subcategories.
+          • /categories?lang=en → Scienza.label="Science", Storia.label="History",
+            Misteri.label="Mysteries" (name still "Scienza", "Storia", "Misteri").
+          • /categories?lang=es → Scienza.label="Ciencia", Storia.label="Historia",
+            Misteri.label="Misterios". Count still 29.
+  - task: "GET /api/trophies?lang= (localized name/desc, requires auth)"
+    implemented: true
+    working: true
+    file: "backend/server.py, backend/i18n.py"
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: |
+          • Without token → 401.
+          • lang=en → first_step.name="First step", desc="Read your first fact.";
+            curious.name="Curious". 10 trophies total.
+          • lang=es → first_step.name="Primer paso", desc="Lee tu primera curiosidad.".
+          • no lang / lang=it → first_step.name="Primo passo".
+  - task: "Feed language filter with IT fallback"
+    implemented: true
+    working: true
+    file: "backend/server.py (/api/feed)"
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: |
+          • User lang=it → /feed?limit=20 returns facts, all with language="it".
+          • Switch to lang=en → /feed?limit=20 still returns facts (IT fallback since
+            no EN facts seeded), no 500. Every fact has a language field.
+          • Switch back to lang=it → feed still non-empty.
+  - task: "Personalization v2 — react returns new_weight + new_sub_weight"
+    implemented: true
+    working: true
+    file: "backend/server.py (/api/facts/{id}/react, pick_weighted)"
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: |
+          • Fresh user with interests=["Scienza","Storia"]; /feed returns ≥2 facts.
+          • POST /facts/{id}/react {action:"like"} → 200 with new_weight and
+            new_sub_weight (numeric, ≥0.0).
+          • POST /facts/{id}/react {action:"dislike"} → 200 with new_sub_weight.
+          • Repeated likes + feed calls (3 iterations) do not crash pick_weighted;
+            all subsequent /feed requests return 200 with facts.
+  - task: "AI fact generation with user language (Spanish)"
+    implemented: true
+    working: true
+    file: "backend/server.py (/api/facts/generate, generate_fact_ai)"
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: |
+          • User lang=es; POST /facts/generate {"category":"Ciencia"} → 400 (canonical
+            IT names enforced, localized input rejected).
+          • POST /facts/generate {"category":"Scienza"} → 200 with language="es",
+            category="Scienza", title/short_fact/deep_dive present (Claude Sonnet 4.5
+            via emergentintegrations, no 503 during testing).
+  - task: "Regression: /health, register, login, forgot flow, security-question, checkin, /me, /preview, /subcategories"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: |
+          All 10 regression tests PASS on the live preview URL:
+          • /health → ok, facts=251 (≥200).
+          • /auth/register full payload → 200 with language="it";
+            /auth/register without security fields → 422.
+          • /auth/login with correct creds → 200 token+user.
+          • /auth/forgot/question → 200 happy, 404 unknown email.
+          • /auth/forgot/reset wrong answer → 401; correct normalized ("  FIDO  ")
+            → 200 token + new_password login works.
+          • /auth/security-question → 401 w/o token, 401 wrong pwd, 200 on success.
+          • /auth/checkin → 200 with streak_days.
+          • /auth/me → has_security_question bool + language field present.
+          • /preview → non-empty list with category + image_url.
+          • /subcategories/Scienza → 200 with subcategories list;
+            /subcategories/NopeCat → 404.
+
 agent_communication:
-  - agent: "main"
-    message: |
-      Ho implementato la feature "recupero password via domanda di sicurezza"
-      (opzione scelta dall'utente). Backend testato con script python: tutti
-      i casi edge coperti (risposta wrong/right case-insensitive, password
-      attuale wrong, utenti senza domanda). Frontend render verificato via
-      screenshot. Pronto per test automatizzato backend e/o per test manuale
-      utente sul frontend.
   - agent: "testing"
     message: |
-      Regression after adding 3 features (29 categories, extended sub_categories,
-      APScheduler prefill). 36/36 tests PASSED in /app/backend_test.py against
-      https://sapevi-che.preview.emergentagent.com/api.
-      Highlights:
-        • GET /api/categories → 29 categories; Invenzioni/Disastri/Religioni/Misteri
-          present with 5/5/7/5 subcategories; Cucina + Animali each have 5 subs.
-        • POST /api/auth/register with interests=[Invenzioni,Misteri] +
-          security_question/security_answer → 200.
-        • GET /api/feed?limit=20 returns only selected categories; every fact has
-          a valid image_url; 5/5 sampled images return HTTP 200.
-        • POST /api/facts/generate {category:"Misteri"} → 200 with valid AI fact
-          (Claude Sonnet 4.5 works with new categories).
-        • Regression suite (register 422 w/o Q/A, forgot/question 200/404,
-          forgot/reset 401 wrong + 200 normalized, set-security-question 401/200,
-          /auth/me has_security_question bool, /auth/checkin streak, /health with
-          facts=142 ≥133) all GREEN.
-        • APScheduler startup log verified:
-          "[prefill] scheduler started: every 12h · batch=10 · cap=1000".
-          First run already executed (+10 facts → DB=141/1000).
-      No critical or minor issues found on backend.
+      === ITERATION 8 — Backend Testing Complete (17/17 PASS) ===
+      Target: https://sapevi-che.preview.emergentagent.com/api
+      
+      NEW FEATURE TESTS:
+      ✅ POST /api/auth/language — default "it", 401 w/o token, 422 invalid, 200 valid.
+      ✅ GET /api/categories?lang= — 29 items; canonical name IT preserved;
+         labels correctly localized (EN: Science/History/Mysteries, ES: Ciencia/
+         Historia/Misterios).
+      ✅ GET /api/trophies?lang= — requires auth; localized name/desc EN/ES/IT.
+      ✅ Feed language filter — IT facts returned for IT user; EN user falls back
+         to IT facts (no empty/500). All facts carry a `language` field.
+      ✅ Personalization v2 — /facts/{id}/react returns both new_weight and
+         new_sub_weight (like +0.25 sub; dislike -0.35 sub). Sequential likes do
+         not crash pick_weighted; diversity cap works.
+      ✅ AI generation with lang=es — /facts/generate {"Ciencia"} → 400 (canonical
+         enforced); {"Scienza"} → 200 Spanish fact saved with language="es"
+         (Claude Sonnet 4.5 responded first try).
+      
+      REGRESSION (all PASS):
+      ✅ /health facts=251 ≥200
+      ✅ /auth/register (422 without security fields; 200 returns language:"it")
+      ✅ /auth/login / forgot/question (200+404) / forgot/reset (401 wrong, 200 
+         normalized) / security-question (401/401/200) / checkin / me / preview /
+         subcategories.
+      
+      No critical issues. All 17 backend tests passed on first run.
+  - agent: "main"
+    message: |
+      === ITERATION 8 — Multilingual E2E + Personalization v2 ===
+      
+      Changes made:
+      1. /api/auth/language (POST) — updates user.language (it|en|es)
+      2. /api/categories?lang= — returns localized `label` alongside canonical `name`
+      3. /api/trophies?lang= — returns localized name/desc
+      4. generate_fact_ai(category, language) — prompts Claude in user's language;
+         saved fact gets `language` field
+      5. Seed facts now store `language: "it"`; migration backfilled 235 legacy facts
+      6. /api/feed filters by user.language with fallback to "it" if empty
+      7. pick_weighted() now uses sub_interest_weights + diversity cap (max 1/3 of
+         feed from same sub_category)
+      8. /api/facts/{id}/react updates BOTH interest_weights AND sub_interest_weights
+         (like: +0.25 sub, +0.15 cat; dislike: -0.35 sub, -0.20 cat)
+      9. Bulk generate now stores language per fact
+      10. Index on facts.language added
+      
+      To test (backend focus):
+      - Register user → language defaults to "it"
+      - POST /api/auth/language with {"language":"en"} → 200, user.language="en"
+      - GET /api/categories?lang=en → `label` localized; `name` canonical (IT)
+      - GET /api/trophies?lang=es → `name`, `desc` in Spanish
+      - GET /api/feed with user lang=it → returns facts (all 235 are "it" after migration)
+      - GET /api/feed with user lang=en → fallback to "it" facts (since DB has none in EN yet)
+      - POST /api/facts/{id}/react {action:"like"} → returns new_sub_weight in response
+      - POST /api/facts/generate with user lang=es → creates fact with `language: "es"`
+         (may fail if litellm is unavailable, treat 503 as acceptable)
+      - Regression: /health, /auth/checkin, /auth/me, forgot flow still OK

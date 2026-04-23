@@ -293,6 +293,7 @@ async def on_startup():
                 "image_url": f["image_url"],
                 "source": f.get("source", "seed"),
                 "sources": f.get("sources", []),
+                "language": f.get("language", "it"),
                 "created_at": datetime.now(timezone.utc),
             })
         if docs:
@@ -317,6 +318,7 @@ async def on_startup():
                         "image_url": f["image_url"],
                         "source": f.get("source", "seed"),
                         "sources": f.get("sources", []),
+                        "language": f.get("language", "it"),
                         "created_at": datetime.now(timezone.utc),
                     })
             if new_docs:
@@ -324,6 +326,22 @@ async def on_startup():
                 logger.info(f"Added {len(new_docs)} new seed facts (incremental).")
         except Exception as e:
             logger.warning(f"Incremental seed skipped: {e}")
+
+    # Migration: backfill language="it" for legacy facts (seed+prefill were Italian)
+    try:
+        legacy = await db.facts.update_many(
+            {"language": {"$exists": False}}, {"$set": {"language": "it"}}
+        )
+        if legacy.modified_count:
+            logger.info(f"Language migration: {legacy.modified_count} facts tagged as 'it'.")
+    except Exception as e:
+        logger.warning(f"Language migration skipped: {e}")
+
+    # Index on language for fast feed filtering
+    try:
+        await db.facts.create_index("language")
+    except Exception:
+        pass
 
     # Migration: re-assign per-fact varied images using image_library (with sub_category awareness)
     try:
@@ -411,6 +429,7 @@ async def _prefill_run():
                 "sub_category": None,
                 "image_url": img_url,
                 "source": "ai_prefill",
+                "language": "it",
                 "created_at": datetime.now(timezone.utc),
             }
             await db.facts.insert_one(doc)
@@ -721,15 +740,46 @@ async def list_trophies(lang: str = "it", user=Depends(current_user)):
 # FEED
 # ==========================================================
 def pick_weighted(user: Dict[str, Any], facts: List[Dict[str, Any]], n: int) -> List[Dict[str, Any]]:
+    """Score each fact using:
+    - category weight  (0.05..3.0)
+    - sub_category weight (additive boost learned from likes)
+    - small randomness for diversity
+    - mild diversity penalty to avoid stacking same category.
+    """
     if not facts:
         return []
-    weights = user.get("interest_weights", {})
+    cat_weights = user.get("interest_weights", {}) or {}
+    sub_weights: Dict[str, float] = user.get("sub_interest_weights", {}) or {}
+
+    # Score all candidates
     scored = []
     for f in facts:
-        w = max(weights.get(f["category"], 0.3), 0.05)
-        scored.append((w + random.random() * 0.2, f))
+        base = max(cat_weights.get(f["category"], 0.3), 0.05)
+        sub_key = f"{f['category']}::{f.get('sub_category') or ''}"
+        sub_boost = sub_weights.get(sub_key, 0.0)
+        # Final score: base category weight + sub boost + jitter
+        score = base + sub_boost + random.random() * 0.25
+        scored.append([score, f])
+
     scored.sort(key=lambda x: -x[0])
-    return [s[1] for s in scored[:n]]
+
+    # Pick top while enforcing mild diversity (at most 40% from same sub_category)
+    picked: List[Dict[str, Any]] = []
+    used_sub_counts: Dict[str, int] = {}
+    cap_per_sub = max(2, n // 3)
+    leftovers = []
+    for sc, f in scored:
+        sub_key = f"{f['category']}::{f.get('sub_category') or ''}"
+        if used_sub_counts.get(sub_key, 0) >= cap_per_sub:
+            leftovers.append(f)
+            continue
+        picked.append(f)
+        used_sub_counts[sub_key] = used_sub_counts.get(sub_key, 0) + 1
+        if len(picked) >= n:
+            break
+    if len(picked) < n:
+        picked.extend(leftovers[: n - len(picked)])
+    return picked[:n]
 
 
 @api.get("/feed")
@@ -739,17 +789,29 @@ async def feed(limit: int = 20, user=Depends(current_user)):
     exclude = seen | disliked
 
     interests = user.get("interests", []) or []
+    lang = user.get("language", "it")
     base_query: Dict[str, Any] = {"id": {"$nin": list(exclude)}}
     # STRICT filter: if user selected categories, return ONLY those
     if interests:
         base_query["category"] = {"$in": interests}
+    # Language filter: match user language (legacy facts were backfilled to 'it')
+    base_query["language"] = lang
 
     cursor = db.facts.find(base_query, {"_id": 0}).limit(400)
     candidates = await cursor.to_list(400)
 
     if not candidates:
-        # Fallback: allow seen (but not disliked) within same strict filter
-        fallback_query: Dict[str, Any] = {"id": {"$nin": list(disliked)}}
+        # Fallback 1: allow seen (but not disliked) within same language+interests
+        fallback_query: Dict[str, Any] = {"id": {"$nin": list(disliked)}, "language": lang}
+        if interests:
+            fallback_query["category"] = {"$in": interests}
+        cursor = db.facts.find(fallback_query, {"_id": 0}).limit(400)
+        candidates = await cursor.to_list(400)
+
+    if not candidates and lang != "it":
+        # Fallback 2: non-Italian user with empty DB → serve Italian fallback
+        # (better to see something than empty feed until AI generates in their lang)
+        fallback_query = {"id": {"$nin": list(disliked)}, "language": "it"}
         if interests:
             fallback_query["category"] = {"$in": interests}
         cursor = db.facts.find(fallback_query, {"_id": 0}).limit(400)
@@ -786,29 +848,41 @@ async def react(fact_id: str, data: ReactIn, user=Depends(current_user)):
     if not fact:
         raise HTTPException(404, "Fact non trovato")
     cat = fact["category"]
-    weights = user.get("interest_weights", {})
+    sub = fact.get("sub_category") or ""
+    sub_key = f"{cat}::{sub}"
+    weights = user.get("interest_weights", {}) or {}
+    sub_weights = user.get("sub_interest_weights", {}) or {}
     current = weights.get(cat, 0.5)
+    current_sub = sub_weights.get(sub_key, 0.0)
     if data.action == "like":
         weights[cat] = min(3.0, current + 0.15)
+        # Sub boost: stronger signal than category weight because it's niche
+        sub_weights[sub_key] = min(2.0, current_sub + 0.25)
         await db.users.update_one(
             {"id": user["id"]},
             {"$addToSet": {"liked_ids": fact_id, "seen_ids": fact_id},
              "$pull": {"disliked_ids": fact_id},
-             "$set": {"interest_weights": weights}},
+             "$set": {"interest_weights": weights, "sub_interest_weights": sub_weights}},
         )
     elif data.action == "dislike":
         weights[cat] = max(0.05, current - 0.2)
+        sub_weights[sub_key] = max(-1.0, current_sub - 0.35)
         await db.users.update_one(
             {"id": user["id"]},
             {"$addToSet": {"disliked_ids": fact_id, "seen_ids": fact_id},
              "$pull": {"liked_ids": fact_id, "bookmarked_ids": fact_id},
-             "$set": {"interest_weights": weights}},
+             "$set": {"interest_weights": weights, "sub_interest_weights": sub_weights}},
         )
     else:
         raise HTTPException(400, "Azione non valida")
     new_trophies = await update_trophies_for_user(user["id"])
     new_trophy_details = [t for t in TROPHIES if t["id"] in new_trophies]
-    return {"ok": True, "new_weight": weights[cat], "new_trophies": new_trophy_details}
+    return {
+        "ok": True,
+        "new_weight": weights[cat],
+        "new_sub_weight": sub_weights[sub_key],
+        "new_trophies": new_trophy_details,
+    }
 
 
 @api.post("/facts/{fact_id}/bookmark")
@@ -981,6 +1055,7 @@ async def bulk_generate_facts(data: BulkGenerateIn, user=Depends(current_user)):
             "sub_category": None,
             "image_url": img_url,
             "source": "ai",
+            "language": lang,
             "created_at": datetime.now(timezone.utc),
         }
         await db.facts.insert_one(doc)
