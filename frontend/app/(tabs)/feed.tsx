@@ -25,6 +25,7 @@ import { useAuth } from "../../src/context/AuthContext";
 import { TrophyModal, Trophy } from "../../src/components/TrophyModal";
 import { saveFeedCache, loadFeedCache } from "../../src/lib/feedCache";
 import { FeedSkeleton } from "../../src/components/FeedSkeleton";
+import { useTranslation } from "react-i18next";
 
 const { height } = Dimensions.get("window");
 
@@ -41,6 +42,7 @@ type Fact = {
 export default function Feed() {
   const router = useRouter();
   const { refresh: refreshUser } = useAuth();
+  const { t } = useTranslation();
   const { height: winH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const TAB_BAR = 62 + Math.max(insets.bottom, 16);
@@ -60,7 +62,7 @@ export default function Feed() {
     try {
       Haptics.selectionAsync();
       await Share.share({
-        message: `Lo sapevi che…\n\n${fact.title}\n\n${fact.short_fact}\n\n— condiviso da Lo Sapevi che? ✨`,
+        message: t("feed.shareMessage", { title: fact.title, short: fact.short_fact }),
       });
     } catch {}
   };
@@ -216,7 +218,7 @@ export default function Feed() {
           <View style={styles.offlineBannerInner}>
             <Ionicons name="cloud-offline" size={16} color={theme.bg} />
             <Text style={styles.offlineBannerText}>
-              Modalità offline · stai vedendo gli ultimi fatti salvati
+              {t("feed.offlineBanner")}
             </Text>
           </View>
         </SafeAreaView>
@@ -246,9 +248,9 @@ export default function Feed() {
         ListEmptyComponent={
           <View style={[styles.empty, { height: cardHeight }]}>
             <Ionicons name="sparkles-outline" size={64} color={theme.primary} />
-            <Text style={styles.emptyTitle}>Hai letto tutto!</Text>
+            <Text style={styles.emptyTitle}>{t("feed.emptyTitle")}</Text>
             <Text style={styles.emptyText}>
-              Tocca il pulsante qui sotto per generare una nuova curiosità con l'AI
+              {t("feed.emptyText")}
             </Text>
             <TouchableOpacity
               testID="empty-generate-btn"
@@ -262,7 +264,7 @@ export default function Feed() {
               ) : (
                 <>
                   <Ionicons name="sparkles" size={18} color={theme.bg} />
-                  <Text style={styles.emptyBtnText}>Genera con AI</Text>
+                  <Text style={styles.emptyBtnText}>{t("feed.generateAI")}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -314,6 +316,7 @@ function DoubleTapCard({
   onShare: () => void;
   onOpen: () => void;
 }) {
+  const { t } = useTranslation();
   const lastTap = useRef(0);
   const heartScale = useRef(new Animated.Value(0)).current;
 
@@ -389,7 +392,7 @@ function DoubleTapCard({
               style={StyleSheet.absoluteFillObject}
               pointerEvents="none"
             />
-            <Text style={styles.kicker}>Lo sapevi che…</Text>
+            <Text style={styles.kicker}>{t("feed.didYouKnow")}</Text>
             <Text style={styles.title} numberOfLines={4}>
               {fact.title}
             </Text>
@@ -403,7 +406,7 @@ function DoubleTapCard({
                 style={styles.discoverBtn}
                 onPress={onOpen}
               >
-                <Text style={styles.discoverText}>Scopri di più</Text>
+                <Text style={styles.discoverText}>{t("feed.discoverMore")}</Text>
                 <Ionicons name="arrow-forward" size={16} color={theme.bg} />
               </TouchableOpacity>
 

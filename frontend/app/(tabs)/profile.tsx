@@ -17,6 +17,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { api, theme } from "../../src/lib/api";
 import { useAuth } from "../../src/context/AuthContext";
 import { LanguagePicker } from "../../src/components/LanguagePicker";
+import { useTranslation } from "react-i18next";
 import {
   scheduleNotifications,
   disableNotifications,
@@ -30,6 +31,7 @@ import {
 export default function Profile() {
   const router = useRouter();
   const { user, logout, refresh } = useAuth();
+  const { t } = useTranslation();
   const [notifEnabled, setNotifEnabled] = useState<boolean>(true);
   const [notifWindow, setNotifWindow] = useState<WindowKey>("sorpresa");
   const [nextAt, setNextAt] = useState<string | undefined>(undefined);
@@ -157,9 +159,9 @@ export default function Profile() {
         </View>
 
         <View style={styles.statsRow}>
-          <Stat label="Lette" value={user.stats.seen} />
-          <Stat label="Piaciute" value={user.stats.liked} />
-          <Stat label="Salvate" value={user.stats.bookmarked} />
+          <Stat label={t("profile.readFacts")} value={user.stats.seen} />
+          <Stat label={t("profile.liked")} value={user.stats.liked} />
+          <Stat label={t("profile.bookmarked")} value={user.stats.bookmarked} />
         </View>
 
         <View style={styles.streakCard} testID="streak-card">
@@ -168,11 +170,11 @@ export default function Profile() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.streakValue}>
-              {user.streak_days || 0} <Text style={styles.streakUnit}>giorni</Text>
+              {user.streak_days || 0} <Text style={styles.streakUnit}>{t("profile.days")}</Text>
             </Text>
-            <Text style={styles.streakLabel}>Streak attuale</Text>
+            <Text style={styles.streakLabel}>{t("profile.currentStreak")}</Text>
             {user.best_streak ? (
-              <Text style={styles.streakBest}>Record personale: {user.best_streak}</Text>
+              <Text style={styles.streakBest}>{t("profile.bestRecord", { days: user.best_streak })}</Text>
             ) : null}
           </View>
           <TouchableOpacity style={styles.shareMini} onPress={shareProfile} testID="share-profile">
@@ -180,7 +182,7 @@ export default function Profile() {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.sectionTitle}>Trofei · {trophies.filter((t) => t.earned).length}/{trophies.length}</Text>
+        <Text style={styles.sectionTitle}>{t("profile.trophies")} · {trophies.filter((t) => t.earned).length}/{trophies.length}</Text>
         <View style={styles.trophyGrid}>
           {trophies.map((t) => (
             <View
@@ -205,7 +207,7 @@ export default function Profile() {
           ))}
         </View>
 
-        <Text style={styles.sectionTitle}>Top interessi</Text>
+        <Text style={styles.sectionTitle}>{t("profile.topInterests")}</Text>
         <View style={styles.weightsBox}>
           {topCategories.map(([cat, w]) => {
             const pct = Math.min(100, Math.round(((w as number) / 3) * 100));
@@ -271,14 +273,14 @@ export default function Profile() {
           <Text style={styles.ghostBtnText}>Prova (3 sec)</Text>
         </TouchableOpacity>
 
-        <Text style={styles.sectionTitle}>Account</Text>
+        <Text style={styles.sectionTitle}>{t("profile.account")}</Text>
         <TouchableOpacity
           style={styles.rowBtn}
           onPress={() => router.push("/onboarding")}
           testID="edit-interests"
         >
           <Ionicons name="options-outline" size={20} color={theme.text} />
-          <Text style={styles.rowText}>Modifica interessi</Text>
+          <Text style={styles.rowText}>{t("profile.editInterests")}</Text>
           <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
         </TouchableOpacity>
 
@@ -289,7 +291,7 @@ export default function Profile() {
         >
           <Ionicons name="shield-checkmark-outline" size={20} color={theme.text} />
           <Text style={styles.rowText}>
-            {user.has_security_question ? "Domanda di sicurezza" : "Imposta domanda di sicurezza"}
+            {user.has_security_question ? t("profile.securityQuestion") : t("profile.setSecurityQuestion")}
           </Text>
           {!user.has_security_question && (
             <View style={styles.badge}>
@@ -304,10 +306,10 @@ export default function Profile() {
         <TouchableOpacity
           style={[styles.rowBtn, { borderColor: theme.error }]}
           onPress={() => {
-            Alert.alert("Esci", "Vuoi davvero uscire?", [
-              { text: "Annulla", style: "cancel" },
+            Alert.alert(t("profile.logoutConfirmTitle"), t("profile.logoutConfirmBody"), [
+              { text: t("common.cancel"), style: "cancel" },
               {
-                text: "Esci",
+                text: t("profile.logout"),
                 style: "destructive",
                 onPress: async () => {
                   await logout();
@@ -319,7 +321,7 @@ export default function Profile() {
           testID="logout-btn"
         >
           <Ionicons name="log-out-outline" size={20} color={theme.error} />
-          <Text style={[styles.rowText, { color: theme.error }]}>Esci</Text>
+          <Text style={[styles.rowText, { color: theme.error }]}>{t("profile.logout")}</Text>
           <View style={{ width: 18 }} />
         </TouchableOpacity>
 

@@ -22,10 +22,12 @@ import { useAuth } from "../src/context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 import { SECURITY_QUESTIONS, CUSTOM_QUESTION_VALUE } from "../src/lib/securityQuestions";
 import { PasswordInput } from "../src/components/PasswordInput";
+import { useTranslation } from "react-i18next";
 
 export default function SecurityScreen() {
   const router = useRouter();
   const { user, refresh } = useAuth();
+  const { t } = useTranslation();
   const [selectedQuestion, setSelectedQuestion] = useState<string>(SECURITY_QUESTIONS[0]);
   const [customQuestion, setCustomQuestion] = useState("");
   const [answer, setAnswer] = useState("");
@@ -40,15 +42,15 @@ export default function SecurityScreen() {
   const onSubmit = async () => {
     setError(null);
     if (!finalQuestion || finalQuestion.length < 3) {
-      setError("Scegli o scrivi una domanda di sicurezza");
+      setError(t("auth.questionMissing"));
       return;
     }
     if (!answer.trim()) {
-      setError("Inserisci la risposta");
+      setError(t("auth.answerEmpty"));
       return;
     }
     if (!currentPassword) {
-      setError("Inserisci la tua password attuale per confermare");
+      setError(t("security.currentPasswordRequired"));
       return;
     }
     setLoading(true);
@@ -60,12 +62,12 @@ export default function SecurityScreen() {
       });
       await refresh();
       Alert.alert(
-        "Fatto!",
-        "La tua domanda di sicurezza è stata salvata. Ora potrai recuperare la password in qualsiasi momento.",
-        [{ text: "OK", onPress: () => router.back() }],
+        t("security.saved"),
+        t("security.savedBody"),
+        [{ text: t("common.ok"), onPress: () => router.back() }],
       );
     } catch (e: any) {
-      setError(e.message || "Errore");
+      setError(e.message || t("common.error"));
     } finally {
       setLoading(false);
     }
@@ -81,7 +83,7 @@ export default function SecurityScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} testID="security-back">
             <Ionicons name="chevron-back" size={26} color={theme.text} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Sicurezza</Text>
+          <Text style={styles.headerTitle}>{t("security.title")}</Text>
           <View style={{ width: 32 }} />
         </View>
 
@@ -95,23 +97,23 @@ export default function SecurityScreen() {
               <Ionicons name="shield-checkmark" size={32} color={theme.primary} />
               <Text style={styles.heroTitle}>
                 {user?.has_security_question
-                  ? "Aggiorna la tua domanda"
-                  : "Imposta la domanda di sicurezza"}
+                  ? t("security.heroUpdate")
+                  : t("security.heroSet")}
               </Text>
               <Text style={styles.heroText}>
-                Serve a recuperare la password se la dimentichi. La risposta viene salvata in modo sicuro.
+                {t("security.heroText")}
               </Text>
             </View>
 
             <View style={styles.card}>
-              <Text style={styles.label}>Domanda</Text>
+              <Text style={styles.label}>{t("auth.securityQuestion")}</Text>
               <TouchableOpacity
                 style={styles.select}
                 onPress={() => setPickerOpen(true)}
                 testID="security-question-picker"
               >
                 <Text style={[styles.selectText, { color: theme.text }]} numberOfLines={2}>
-                  {isCustom ? "Scrivi una domanda personalizzata" : selectedQuestion}
+                  {isCustom ? t("auth.customQuestion") : selectedQuestion}
                 </Text>
                 <Ionicons name="chevron-down" size={18} color={theme.textMuted} />
               </TouchableOpacity>
@@ -120,7 +122,7 @@ export default function SecurityScreen() {
                 <TextInput
                   testID="security-question-custom"
                   style={[styles.input, { marginTop: 10 }]}
-                  placeholder="La tua domanda personalizzata"
+                  placeholder={t("auth.customQuestionPlaceholder")}
                   placeholderTextColor={theme.textMuted}
                   value={customQuestion}
                   onChangeText={setCustomQuestion}
@@ -128,11 +130,11 @@ export default function SecurityScreen() {
                 />
               )}
 
-              <Text style={styles.label}>Risposta</Text>
+              <Text style={styles.label}>{t("auth.securityAnswer")}</Text>
               <TextInput
                 testID="security-answer"
                 style={styles.input}
-                placeholder="La tua risposta segreta"
+                placeholder={t("auth.securityAnswerPlaceholder")}
                 placeholderTextColor={theme.textMuted}
                 value={answer}
                 onChangeText={setAnswer}
@@ -140,10 +142,10 @@ export default function SecurityScreen() {
                 maxLength={200}
               />
 
-              <Text style={styles.label}>Password attuale</Text>
+              <Text style={styles.label}>{t("security.currentPassword")}</Text>
               <PasswordInput
                 testID="security-current-password"
-                placeholder="Per confermare che sei tu"
+                placeholder={t("security.currentPasswordPlaceholder")}
                 value={currentPassword}
                 onChangeText={setCurrentPassword}
               />
@@ -159,7 +161,7 @@ export default function SecurityScreen() {
                 {loading ? (
                   <ActivityIndicator color={theme.bg} />
                 ) : (
-                  <Text style={styles.btnText}>Salva</Text>
+                  <Text style={styles.btnText}>{t("common.save")}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -169,7 +171,7 @@ export default function SecurityScreen() {
         <Modal transparent visible={pickerOpen} animationType="fade" onRequestClose={() => setPickerOpen(false)}>
           <Pressable style={styles.modalBackdrop} onPress={() => setPickerOpen(false)}>
             <Pressable style={styles.modalCard} onPress={() => {}}>
-              <Text style={styles.modalTitle}>Scegli una domanda</Text>
+              <Text style={styles.modalTitle}>{t("auth.chooseQuestion")}</Text>
               <ScrollView style={{ maxHeight: 400 }}>
                 {SECURITY_QUESTIONS.map((q) => (
                   <TouchableOpacity
@@ -194,7 +196,7 @@ export default function SecurityScreen() {
                   }}
                 >
                   <Text style={[styles.optionText, { fontStyle: "italic" }]}>
-                    ✏️  Scrivi una domanda personalizzata
+                    ✏️  {t("auth.customQuestion")}
                   </Text>
                   {isCustom && <Ionicons name="checkmark" size={18} color={theme.primary} />}
                 </TouchableOpacity>

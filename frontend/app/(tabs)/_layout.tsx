@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 import { api, theme } from "../../src/lib/api";
 import { TrophyModal, Trophy } from "../../src/components/TrophyModal";
 import { useAuth } from "../../src/context/AuthContext";
@@ -9,6 +10,7 @@ import { ensureDefaultScheduling } from "../../src/lib/notifications";
 
 export default function TabsLayout() {
   const { user, refresh } = useAuth();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [newTrophies, setNewTrophies] = useState<Trophy[]>([]);
 
@@ -48,21 +50,21 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="feed"
           options={{
-            title: "Scopri",
+            title: t("tabs.feed"),
             tabBarIcon: ({ color, size }) => <Ionicons name="flame" color={color} size={size} />,
           }}
         />
         <Tabs.Screen
           name="saved"
           options={{
-            title: "Salvati",
+            title: t("tabs.saved"),
             tabBarIcon: ({ color, size }) => <Ionicons name="bookmark" color={color} size={size} />,
           }}
         />
         <Tabs.Screen
           name="profile"
           options={{
-            title: "Profilo",
+            title: t("tabs.profile"),
             tabBarIcon: ({ color, size }) => <Ionicons name="person-circle" color={color} size={size} />,
           }}
         />

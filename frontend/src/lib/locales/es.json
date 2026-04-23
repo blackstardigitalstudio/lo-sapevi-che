@@ -75,11 +75,13 @@
     "wrongAnswer": "Respuesta de seguridad incorrecta"
   },
   "onboarding": {
-    "title": "Tus intereses",
-    "subtitle": "Elige los temas que te apasionan",
-    "selectAtLeast": "Selecciona al menos una categoría",
-    "startAdventure": "Empieza la aventura",
-    "chooseSub": "Personalizar",
+    "hello": "Hola {{name}} 👋",
+    "title": "¿Qué te fascina?",
+    "subtitle": "Elige al menos 3 temas. En algunos también puedes elegir marcas o sub-temas.",
+    "selectedCount": "{{n}} temas seleccionados",
+    "selectMore": "Elige al menos {{n}} más",
+    "startAdventure": "Comienza la aventura",
+    "subTitle": "Personalizar {{cat}}",
     "subSubtitle": "Elige las subcategorías que más te gusten"
   },
   "tabs": {
@@ -111,6 +113,9 @@
     "streak": "Racha",
     "days": "días",
     "best": "Mejor",
+    "currentStreak": "Racha actual",
+    "bestRecord": "Récord personal: {{days}}",
+    "topInterests": "Temas favoritos",
     "readFacts": "Curiosidades leídas",
     "bookmarked": "Guardados",
     "liked": "Gustan",
@@ -125,7 +130,8 @@
     "logout": "Cerrar sesión",
     "logoutConfirmTitle": "¿Cerrar sesión?",
     "logoutConfirmBody": "Tendrás que iniciar sesión de nuevo para volver.",
-    "about": "Información"
+    "about": "Información",
+    "memberSince": "Miembro desde"
   },
   "security": {
     "title": "Seguridad",

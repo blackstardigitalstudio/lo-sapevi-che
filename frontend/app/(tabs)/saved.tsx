@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { api, theme } from "../../src/lib/api";
+import { useTranslation } from "react-i18next";
 
 type Fact = {
   id: string;
@@ -24,6 +25,7 @@ type Fact = {
 
 export default function Saved() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [facts, setFacts] = useState<Fact[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -56,8 +58,8 @@ export default function Saved() {
   return (
     <SafeAreaView style={styles.container} testID="saved-screen" edges={["top"]}>
       <View style={styles.header}>
-        <Text style={styles.kicker}>La tua collezione</Text>
-        <Text style={styles.title}>Salvati</Text>
+        <Text style={styles.kicker}>{t("saved.bookmarks")}</Text>
+        <Text style={styles.title}>{t("saved.title")}</Text>
       </View>
 
       <FlatList
@@ -77,9 +79,9 @@ export default function Saved() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="bookmark-outline" size={42} color={theme.primary} />
-            <Text style={styles.emptyTitle}>Nessun salvato</Text>
+            <Text style={styles.emptyTitle}>{t("saved.emptyBookmarks")}</Text>
             <Text style={styles.emptyText}>
-              Tocca l'icona segnalibro su una curiosità per salvarla qui.
+              {t("saved.emptyHint")}
             </Text>
           </View>
         }

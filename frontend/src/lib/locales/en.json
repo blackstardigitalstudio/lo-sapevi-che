@@ -75,11 +75,13 @@
     "wrongAnswer": "Wrong security answer"
   },
   "onboarding": {
-    "title": "Your interests",
-    "subtitle": "Pick the topics you love",
-    "selectAtLeast": "Pick at least one category",
+    "hello": "Hi {{name}} 👋",
+    "title": "What fascinates you?",
+    "subtitle": "Pick at least 3 niches. For some you can also choose brands or sub-topics.",
+    "selectedCount": "{{n}} niches selected",
+    "selectMore": "Pick {{n}} more",
     "startAdventure": "Start the adventure",
-    "chooseSub": "Customize",
+    "subTitle": "Customize {{cat}}",
     "subSubtitle": "Pick the sub-categories you enjoy most"
   },
   "tabs": {
@@ -111,6 +113,9 @@
     "streak": "Streak",
     "days": "days",
     "best": "Best",
+    "currentStreak": "Current streak",
+    "bestRecord": "Personal best: {{days}}",
+    "topInterests": "Top interests",
     "readFacts": "Facts read",
     "bookmarked": "Saved",
     "liked": "Liked",
@@ -125,7 +130,8 @@
     "logout": "Log out",
     "logoutConfirmTitle": "Log out?",
     "logoutConfirmBody": "You'll need to sign in again to come back.",
-    "about": "About"
+    "about": "About",
+    "memberSince": "Member since"
   },
   "security": {
     "title": "Security",

@@ -14,6 +14,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../src/context/AuthContext";
 import { api, theme } from "../src/lib/api";
+import { useTranslation } from "react-i18next";
 
 type Preview = {
   category: string;
@@ -32,6 +33,7 @@ type CategoryInfo = {
 
 export default function Onboarding() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { user, refresh } = useAuth();
   const insets = useSafeAreaInsets();
   const [previews, setPreviews] = useState<Preview[]>([]);
@@ -128,11 +130,9 @@ export default function Onboarding() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]} testID="onboarding-screen">
       <View style={styles.header}>
-        <Text style={styles.greet}>Ciao {user?.name} 👋</Text>
-        <Text style={styles.title}>Cosa ti affascina?</Text>
-        <Text style={styles.subtitle}>
-          Scegli almeno 3 nicchie. Per alcune puoi anche scegliere marche o sotto-temi.
-        </Text>
+        <Text style={styles.greet}>{t("onboarding.hello", { name: user?.name })}</Text>
+        <Text style={styles.title}>{t("onboarding.title")}</Text>
+        <Text style={styles.subtitle}>{t("onboarding.subtitle")}</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -239,8 +239,8 @@ export default function Onboarding() {
       <View style={[styles.bottom, { paddingBottom: Math.max(insets.bottom + 20, 56) }]}>
         <Text style={styles.counter}>
           {selected.size < 3
-            ? `Seleziona almeno ${3 - selected.size} in più`
-            : `${selected.size} nicchie selezionate`}
+            ? t("onboarding.selectMore", { n: 3 - selected.size })
+            : t("onboarding.selectedCount", { n: selected.size })}
         </Text>
         <TouchableOpacity
           testID="onboarding-continue"
@@ -248,7 +248,7 @@ export default function Onboarding() {
           disabled={selected.size < 3 || saving}
           onPress={onContinue}
         >
-          {saving ? <ActivityIndicator color={theme.bg} /> : <Text style={styles.ctaText}>Inizia l'avventura</Text>}
+          {saving ? <ActivityIndicator color={theme.bg} /> : <Text style={styles.ctaText}>{t("onboarding.startAdventure")}</Text>}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
