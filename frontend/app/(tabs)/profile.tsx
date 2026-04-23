@@ -16,6 +16,7 @@ import * as Notifications from "expo-notifications";
 import { useFocusEffect, useRouter } from "expo-router";
 import { api, theme } from "../../src/lib/api";
 import { useAuth } from "../../src/context/AuthContext";
+import { LanguagePicker } from "../../src/components/LanguagePicker";
 import {
   scheduleNotifications,
   disableNotifications,
@@ -297,6 +298,8 @@ export default function Profile() {
           )}
           <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
         </TouchableOpacity>
+
+        <LanguagePicker variant="row" onChange={() => {}} />
 
         <TouchableOpacity
           style={[styles.rowBtn, { borderColor: theme.error }]}

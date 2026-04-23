@@ -16,11 +16,13 @@ import { useRouter, Link } from "expo-router";
 import { api, theme } from "../../src/lib/api";
 import { Ionicons } from "@expo/vector-icons";
 import { PasswordInput } from "../../src/components/PasswordInput";
+import { useTranslation } from "react-i18next";
 
 type Step = "email" | "reset" | "done";
 
 export default function Forgot() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [question, setQuestion] = useState("");
@@ -33,7 +35,7 @@ export default function Forgot() {
   const onSubmitEmail = async () => {
     setError(null);
     if (!email.trim()) {
-      setError("Inserisci la tua email");
+      setError(t("auth.emailEmpty"));
       return;
     }
     setLoading(true);
@@ -42,7 +44,7 @@ export default function Forgot() {
       setQuestion(res.security_question);
       setStep("reset");
     } catch (e: any) {
-      setError(e.message || "Errore");
+      setError(e.message || t("common.error"));
     } finally {
       setLoading(false);
     }
@@ -51,15 +53,15 @@ export default function Forgot() {
   const onSubmitReset = async () => {
     setError(null);
     if (!answer.trim()) {
-      setError("Inserisci la risposta");
+      setError(t("auth.answerEmpty"));
       return;
     }
     if (newPassword.length < 6) {
-      setError("Password: minimo 6 caratteri");
+      setError(t("auth.passwordTooShort"));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError("Le password non coincidono");
+      setError(t("auth.passwordsDontMatch"));
       return;
     }
     setLoading(true);
@@ -71,7 +73,7 @@ export default function Forgot() {
       });
       setStep("done");
     } catch (e: any) {
-      setError(e.message || "Errore");
+      setError(e.message || t("common.error"));
     } finally {
       setLoading(false);
     }
@@ -91,22 +93,22 @@ export default function Forgot() {
         >
           <View style={styles.logoWrap}>
             <Ionicons name="key" size={44} color={theme.primary} />
-            <Text style={styles.brand}>Recupera password</Text>
+            <Text style={styles.brand}>{t("auth.forgotTitle")}</Text>
             <Text style={styles.tagline}>
-              {step === "email" && "Inserisci la tua email per iniziare"}
-              {step === "reset" && "Rispondi alla tua domanda di sicurezza"}
-              {step === "done" && "Password aggiornata!"}
+              {step === "email" && t("auth.forgotStep1Tagline")}
+              {step === "reset" && t("auth.forgotStep2Tagline")}
+              {step === "done" && t("auth.forgotDoneTagline")}
             </Text>
           </View>
 
           <View style={styles.card}>
             {step === "email" && (
               <>
-                <Text style={styles.label}>Email</Text>
+                <Text style={styles.label}>{t("common.email")}</Text>
                 <TextInput
                   testID="forgot-email"
                   style={styles.input}
-                  placeholder="tu@email.com"
+                  placeholder={t("auth.emailPlaceholder")}
                   placeholderTextColor={theme.textMuted}
                   autoCapitalize="none"
                   keyboardType="email-address"
@@ -125,7 +127,7 @@ export default function Forgot() {
                   {loading ? (
                     <ActivityIndicator color={theme.bg} />
                   ) : (
-                    <Text style={styles.btnText}>Continua</Text>
+                    <Text style={styles.btnText}>{t("common.continue")}</Text>
                   )}
                 </TouchableOpacity>
               </>
@@ -134,33 +136,33 @@ export default function Forgot() {
             {step === "reset" && (
               <>
                 <View style={styles.questionBox}>
-                  <Text style={styles.questionLabel}>LA TUA DOMANDA</Text>
+                  <Text style={styles.questionLabel}>{t("auth.yourQuestion")}</Text>
                   <Text style={styles.questionText}>{question}</Text>
                 </View>
 
-                <Text style={styles.label}>Risposta</Text>
+                <Text style={styles.label}>{t("auth.securityAnswer")}</Text>
                 <TextInput
                   testID="forgot-answer"
                   style={styles.input}
-                  placeholder="La tua risposta segreta"
+                  placeholder={t("auth.securityAnswerPlaceholder")}
                   placeholderTextColor={theme.textMuted}
                   value={answer}
                   onChangeText={setAnswer}
                   autoCapitalize="none"
                 />
 
-                <Text style={styles.label}>Nuova password</Text>
+                <Text style={styles.label}>{t("auth.newPassword")}</Text>
                 <PasswordInput
                   testID="forgot-newpassword"
-                  placeholder="Minimo 6 caratteri"
+                  placeholder={t("auth.passwordHint")}
                   value={newPassword}
                   onChangeText={setNewPassword}
                 />
 
-                <Text style={styles.label}>Conferma password</Text>
+                <Text style={styles.label}>{t("auth.confirmPassword")}</Text>
                 <PasswordInput
                   testID="forgot-confirmpassword"
-                  placeholder="Ripeti la nuova password"
+                  placeholder={t("auth.confirmPasswordPlaceholder")}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                 />
@@ -176,7 +178,7 @@ export default function Forgot() {
                   {loading ? (
                     <ActivityIndicator color={theme.bg} />
                   ) : (
-                    <Text style={styles.btnText}>Reimposta password</Text>
+                    <Text style={styles.btnText}>{t("auth.resetPassword")}</Text>
                   )}
                 </TouchableOpacity>
 
@@ -190,7 +192,7 @@ export default function Forgot() {
                     setError(null);
                   }}
                 >
-                  <Text style={styles.secondaryText}>Cambia email</Text>
+                  <Text style={styles.secondaryText}>{t("auth.changeEmail")}</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -198,26 +200,24 @@ export default function Forgot() {
             {step === "done" && (
               <View style={{ alignItems: "center" }}>
                 <Ionicons name="checkmark-circle" size={60} color={theme.success} />
-                <Text style={styles.successTitle}>Tutto fatto!</Text>
-                <Text style={styles.successText}>
-                  La tua password è stata aggiornata. Ora puoi accedere con le nuove credenziali.
-                </Text>
+                <Text style={styles.successTitle}>{t("auth.allDone")}</Text>
+                <Text style={styles.successText}>{t("auth.allDoneBody")}</Text>
                 <TouchableOpacity
                   testID="forgot-go-login"
                   style={[styles.btn, { marginTop: 20 }]}
                   onPress={() => router.replace("/auth/login")}
                 >
-                  <Text style={styles.btnText}>Vai al login</Text>
+                  <Text style={styles.btnText}>{t("auth.goToLogin")}</Text>
                 </TouchableOpacity>
               </View>
             )}
 
             {step !== "done" && (
               <View style={styles.footer}>
-                <Text style={styles.footerText}>Ricordi la password?</Text>
+                <Text style={styles.footerText}>{t("auth.rememberPassword")}</Text>
                 <Link href="/auth/login" asChild>
                   <TouchableOpacity testID="go-login">
-                    <Text style={styles.link}>Accedi</Text>
+                    <Text style={styles.link}>{t("auth.login")}</Text>
                   </TouchableOpacity>
                 </Link>
               </View>

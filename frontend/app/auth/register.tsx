@@ -20,10 +20,14 @@ import { theme } from "../../src/lib/api";
 import { Ionicons } from "@expo/vector-icons";
 import { SECURITY_QUESTIONS, CUSTOM_QUESTION_VALUE } from "../../src/lib/securityQuestions";
 import { PasswordInput } from "../../src/components/PasswordInput";
+import { LanguagePicker } from "../../src/components/LanguagePicker";
+import { useTranslation } from "react-i18next";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Register() {
   const router = useRouter();
   const { register } = useAuth();
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -40,19 +44,19 @@ export default function Register() {
   const onSubmit = async () => {
     setError(null);
     if (!name || !email || !password) {
-      setError("Compila tutti i campi");
+      setError(t("common.required"));
       return;
     }
     if (password.length < 6) {
-      setError("Password: minimo 6 caratteri");
+      setError(t("auth.passwordTooShort"));
       return;
     }
     if (!finalQuestion || finalQuestion.length < 3) {
-      setError("Scegli o scrivi una domanda di sicurezza");
+      setError(t("auth.questionMissing"));
       return;
     }
     if (!securityAnswer.trim()) {
-      setError("Inserisci la risposta alla domanda di sicurezza");
+      setError(t("auth.answerMissing"));
       return;
     }
     setLoading(true);
@@ -74,172 +78,175 @@ export default function Register() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: theme.bg }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={0}
-    >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.logoWrap}>
-            <Ionicons name="sparkles" size={44} color={theme.primary} />
-            <Text style={styles.brand}>Crea il tuo account</Text>
-            <Text style={styles.tagline}>Inizia il tuo viaggio nella conoscenza</Text>
-          </View>
-
-          <View style={styles.card}>
-            <Text style={styles.label}>Nome</Text>
-            <TextInput
-              testID="register-name"
-              style={styles.input}
-              placeholder="Come ti chiami?"
-              placeholderTextColor={theme.textMuted}
-              value={name}
-              onChangeText={setName}
-            />
-
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              testID="register-email"
-              style={styles.input}
-              placeholder="tu@email.com"
-              placeholderTextColor={theme.textMuted}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-            />
-
-            <Text style={styles.label}>Password</Text>
-            <PasswordInput
-              testID="register-password"
-              placeholder="Minimo 6 caratteri"
-              value={password}
-              onChangeText={setPassword}
-            />
-
-            <View style={styles.sectionDivider} />
-            <View style={styles.securityHint}>
-              <Ionicons name="shield-checkmark" size={16} color={theme.primary} />
-              <Text style={styles.hintText}>
-                Serve per recuperare la password se la dimentichi.
-              </Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }} edges={["top"]}>
+      <View style={{ alignItems: "flex-end", paddingHorizontal: 16, paddingTop: 8 }}>
+        <LanguagePicker variant="compact" onChange={() => setName((n) => n)} />
+      </View>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={0}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <ScrollView
+            contentContainerStyle={styles.scroll}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.logoWrap}>
+              <Ionicons name="sparkles" size={44} color={theme.primary} />
+              <Text style={styles.brand}>{t("auth.registerTitle")}</Text>
+              <Text style={styles.tagline}>{t("auth.registerTagline")}</Text>
             </View>
 
-            <Text style={styles.label}>Domanda di sicurezza</Text>
-            <TouchableOpacity
-              testID="register-question-picker"
-              style={styles.select}
-              onPress={() => setPickerOpen(true)}
-            >
-              <Text
-                style={[
-                  styles.selectText,
-                  { color: selectedQuestion ? theme.text : theme.textMuted },
-                ]}
-                numberOfLines={2}
-              >
-                {isCustom ? "Scrivi una domanda personalizzata" : selectedQuestion}
-              </Text>
-              <Ionicons name="chevron-down" size={18} color={theme.textMuted} />
-            </TouchableOpacity>
-
-            {isCustom && (
+            <View style={styles.card}>
+              <Text style={styles.label}>{t("common.name")}</Text>
               <TextInput
-                testID="register-question-custom"
-                style={[styles.input, { marginTop: 10 }]}
-                placeholder="La tua domanda personalizzata"
+                testID="register-name"
+                style={styles.input}
+                placeholder={t("auth.namePlaceholder")}
                 placeholderTextColor={theme.textMuted}
-                value={customQuestion}
-                onChangeText={setCustomQuestion}
+                value={name}
+                onChangeText={setName}
+              />
+
+              <Text style={styles.label}>{t("common.email")}</Text>
+              <TextInput
+                testID="register-email"
+                style={styles.input}
+                placeholder={t("auth.emailPlaceholder")}
+                placeholderTextColor={theme.textMuted}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                value={email}
+                onChangeText={setEmail}
+              />
+
+              <Text style={styles.label}>{t("common.password")}</Text>
+              <PasswordInput
+                testID="register-password"
+                placeholder={t("auth.passwordHint")}
+                value={password}
+                onChangeText={setPassword}
+              />
+
+              <View style={styles.sectionDivider} />
+              <View style={styles.securityHint}>
+                <Ionicons name="shield-checkmark" size={16} color={theme.primary} />
+                <Text style={styles.hintText}>{t("auth.securityHint")}</Text>
+              </View>
+
+              <Text style={styles.label}>{t("auth.securityQuestion")}</Text>
+              <TouchableOpacity
+                testID="register-question-picker"
+                style={styles.select}
+                onPress={() => setPickerOpen(true)}
+              >
+                <Text
+                  style={[
+                    styles.selectText,
+                    { color: selectedQuestion ? theme.text : theme.textMuted },
+                  ]}
+                  numberOfLines={2}
+                >
+                  {isCustom ? t("auth.customQuestion") : selectedQuestion}
+                </Text>
+                <Ionicons name="chevron-down" size={18} color={theme.textMuted} />
+              </TouchableOpacity>
+
+              {isCustom && (
+                <TextInput
+                  testID="register-question-custom"
+                  style={[styles.input, { marginTop: 10 }]}
+                  placeholder={t("auth.customQuestionPlaceholder")}
+                  placeholderTextColor={theme.textMuted}
+                  value={customQuestion}
+                  onChangeText={setCustomQuestion}
+                  maxLength={200}
+                />
+              )}
+
+              <Text style={styles.label}>{t("auth.securityAnswer")}</Text>
+              <TextInput
+                testID="register-answer"
+                style={styles.input}
+                placeholder={t("auth.securityAnswerPlaceholder")}
+                placeholderTextColor={theme.textMuted}
+                value={securityAnswer}
+                onChangeText={setSecurityAnswer}
+                autoCapitalize="none"
                 maxLength={200}
               />
-            )}
 
-            <Text style={styles.label}>Risposta</Text>
-            <TextInput
-              testID="register-answer"
-              style={styles.input}
-              placeholder="La tua risposta segreta"
-              placeholderTextColor={theme.textMuted}
-              value={securityAnswer}
-              onChangeText={setSecurityAnswer}
-              autoCapitalize="none"
-              maxLength={200}
-            />
-
-            {error && (
-              <Text style={styles.error} testID="register-error">
-                {error}
-              </Text>
-            )}
-
-            <TouchableOpacity
-              testID="register-submit"
-              style={styles.btn}
-              onPress={onSubmit}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color={theme.bg} />
-              ) : (
-                <Text style={styles.btnText}>Crea account</Text>
+              {error && (
+                <Text style={styles.error} testID="register-error">
+                  {error}
+                </Text>
               )}
-            </TouchableOpacity>
 
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>Hai già un account?</Text>
-              <Link href="/auth/login" asChild>
-                <TouchableOpacity testID="go-login">
-                  <Text style={styles.link}>Accedi</Text>
-                </TouchableOpacity>
-              </Link>
+              <TouchableOpacity
+                testID="register-submit"
+                style={styles.btn}
+                onPress={onSubmit}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color={theme.bg} />
+                ) : (
+                  <Text style={styles.btnText}>{t("auth.createAccount")}</Text>
+                )}
+              </TouchableOpacity>
+
+              <View style={styles.footer}>
+                <Text style={styles.footerText}>{t("auth.hasAccount")}</Text>
+                <Link href="/auth/login" asChild>
+                  <TouchableOpacity testID="go-login">
+                    <Text style={styles.link}>{t("auth.login")}</Text>
+                  </TouchableOpacity>
+                </Link>
+              </View>
             </View>
-          </View>
-        </ScrollView>
-      </TouchableWithoutFeedback>
+          </ScrollView>
+        </TouchableWithoutFeedback>
 
-      <Modal transparent visible={pickerOpen} animationType="fade" onRequestClose={() => setPickerOpen(false)}>
-        <Pressable style={styles.modalBackdrop} onPress={() => setPickerOpen(false)}>
-          <Pressable style={styles.modalCard} onPress={() => {}}>
-            <Text style={styles.modalTitle}>Scegli una domanda</Text>
-            <ScrollView style={{ maxHeight: 400 }}>
-              {SECURITY_QUESTIONS.map((q) => (
+        <Modal transparent visible={pickerOpen} animationType="fade" onRequestClose={() => setPickerOpen(false)}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setPickerOpen(false)}>
+            <Pressable style={styles.modalCard} onPress={() => {}}>
+              <Text style={styles.modalTitle}>{t("auth.chooseQuestion")}</Text>
+              <ScrollView style={{ maxHeight: 400 }}>
+                {SECURITY_QUESTIONS.map((q) => (
+                  <TouchableOpacity
+                    key={q}
+                    style={[styles.optionRow, selectedQuestion === q && styles.optionRowActive]}
+                    onPress={() => {
+                      setSelectedQuestion(q);
+                      setPickerOpen(false);
+                    }}
+                  >
+                    <Text style={styles.optionText}>{q}</Text>
+                    {selectedQuestion === q && (
+                      <Ionicons name="checkmark" size={18} color={theme.primary} />
+                    )}
+                  </TouchableOpacity>
+                ))}
                 <TouchableOpacity
-                  key={q}
-                  style={[styles.optionRow, selectedQuestion === q && styles.optionRowActive]}
+                  style={[styles.optionRow, isCustom && styles.optionRowActive]}
                   onPress={() => {
-                    setSelectedQuestion(q);
+                    setSelectedQuestion(CUSTOM_QUESTION_VALUE);
                     setPickerOpen(false);
                   }}
                 >
-                  <Text style={styles.optionText}>{q}</Text>
-                  {selectedQuestion === q && (
-                    <Ionicons name="checkmark" size={18} color={theme.primary} />
-                  )}
+                  <Text style={[styles.optionText, { fontStyle: "italic" }]}>
+                    ✏️  {t("auth.customQuestion")}
+                  </Text>
+                  {isCustom && <Ionicons name="checkmark" size={18} color={theme.primary} />}
                 </TouchableOpacity>
-              ))}
-              <TouchableOpacity
-                style={[styles.optionRow, isCustom && styles.optionRowActive]}
-                onPress={() => {
-                  setSelectedQuestion(CUSTOM_QUESTION_VALUE);
-                  setPickerOpen(false);
-                }}
-              >
-                <Text style={[styles.optionText, { fontStyle: "italic" }]}>
-                  ✏️  Scrivi una domanda personalizzata
-                </Text>
-                {isCustom && <Ionicons name="checkmark" size={18} color={theme.primary} />}
-              </TouchableOpacity>
-            </ScrollView>
+              </ScrollView>
+            </Pressable>
           </Pressable>
-        </Pressable>
-      </Modal>
-    </KeyboardAvoidingView>
+        </Modal>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 

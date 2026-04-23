@@ -17,10 +17,14 @@ import { useAuth } from "../../src/context/AuthContext";
 import { theme } from "../../src/lib/api";
 import { Ionicons } from "@expo/vector-icons";
 import { PasswordInput } from "../../src/components/PasswordInput";
+import { LanguagePicker } from "../../src/components/LanguagePicker";
+import { useTranslation } from "react-i18next";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Login() {
   const router = useRouter();
   const { login } = useAuth();
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -44,39 +48,43 @@ export default function Login() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: theme.bg }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={0}
-    >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.logoWrap}>
-            <Ionicons name="sparkles" size={48} color={theme.primary} />
-            <Text style={styles.brand} testID="brand-title">
-              Lo Sapevi che?
-            </Text>
-            <Text style={styles.tagline}>Curiosità che illuminano ogni giorno</Text>
-          </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }} edges={["top"]}>
+      <View style={{ alignItems: "flex-end", paddingHorizontal: 16, paddingTop: 8 }}>
+        <LanguagePicker variant="compact" onChange={() => setEmail((e) => e)} />
+      </View>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={0}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <ScrollView
+            contentContainerStyle={styles.scroll}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.logoWrap}>
+              <Ionicons name="sparkles" size={48} color={theme.primary} />
+              <Text style={styles.brand} testID="brand-title">
+                Lo Sapevi che?
+              </Text>
+              <Text style={styles.tagline}>{t("auth.loginTagline")}</Text>
+            </View>
 
-          <View style={styles.card}>
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              testID="login-email"
-              style={styles.input}
-              placeholder="tu@email.com"
-              placeholderTextColor={theme.textMuted}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-            />
+            <View style={styles.card}>
+              <Text style={styles.label}>{t("common.email")}</Text>
+              <TextInput
+                testID="login-email"
+                style={styles.input}
+                placeholder={t("auth.emailPlaceholder")}
+                placeholderTextColor={theme.textMuted}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                value={email}
+                onChangeText={setEmail}
+              />
 
-            <Text style={styles.label}>Password</Text>
+            <Text style={styles.label}>{t("common.password")}</Text>
             <PasswordInput
               testID="login-password"
               placeholder="•••••••"
@@ -99,21 +107,21 @@ export default function Login() {
               {loading ? (
                 <ActivityIndicator color={theme.bg} />
               ) : (
-                <Text style={styles.btnText}>Accedi</Text>
+                <Text style={styles.btnText}>{t("auth.login")}</Text>
               )}
             </TouchableOpacity>
 
             <Link href="/auth/forgot" asChild>
               <TouchableOpacity testID="go-forgot" style={styles.forgotBtn}>
-                <Text style={styles.forgotText}>Password dimenticata?</Text>
+                <Text style={styles.forgotText}>{t("auth.forgotPassword")}</Text>
               </TouchableOpacity>
             </Link>
 
             <View style={styles.footer}>
-              <Text style={styles.footerText}>Non hai un account?</Text>
+              <Text style={styles.footerText}>{t("auth.noAccount")}</Text>
               <Link href="/auth/register" asChild>
                 <TouchableOpacity testID="go-register">
-                  <Text style={styles.link}>Registrati</Text>
+                  <Text style={styles.link}>{t("auth.register")}</Text>
                 </TouchableOpacity>
               </Link>
             </View>
@@ -121,6 +129,7 @@ export default function Login() {
         </ScrollView>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 

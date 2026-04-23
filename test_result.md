@@ -102,6 +102,33 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
+# ================ ITERATION 7 — MULTILINGUE (IT / EN / ES) ================
+
+iteration_7:
+  frontend:
+    - task: "Multilingual support (IT/EN/ES) with picker"
+      implemented: true
+      working: true
+      file: "frontend/src/lib/i18n.ts (new), frontend/src/lib/locales/{it,en,es}.json (new), frontend/src/components/LanguagePicker.tsx (new), frontend/app/_layout.tsx, frontend/app/auth/{login,register,forgot}.tsx, frontend/app/(tabs)/profile.tsx"
+      comment: |
+        - i18next + react-i18next + expo-localization integrati.
+        - 3 lingue: Italiano, English, Espa\u00f1ol.
+        - ~170 stringhe tradotte per ogni lingua (common, language, auth,
+          onboarding, tabs, feed, saved, profile, security).
+        - LanguagePicker component (variant "compact" per auth screens,
+          variant "row" per profile).
+        - Auto-detect lingua device al primo avvio via expo-localization.
+        - Persistenza scelta in AsyncStorage (@losapevi_lang).
+        - Picker visibile in: Login, Register, Profile.
+        - Cambio lingua in runtime senza restart.
+        - NOTA: i fatti del DB sono in italiano (per scelta dell'utente -
+          solo UI tradotta come da richiesta).
+  test_results_iter_7:
+    - screenshots verified: login EN ("Sign in"), login ES ("Entrar"),
+      modal picker con bandiere, checkmark su lingua attiva. Cambio lingua
+      istantaneo (no reload).
+
+
 # ================ ITERATION 6 — UX: PWD visibility + Persistent auth ================
 
 iteration_6:
