@@ -5,7 +5,7 @@ from seed_facts import CATEGORIES, CATEGORY_EMOJI, SUB_CATEGORIES
 from i18n import label_for_category, label_for_trophy
 from image_library import first_image_for_category
 from deps import db, current_user
-from services import TROPHIES
+from trophies import TROPHIES
 
 router = APIRouter(tags=["catalog"])
 

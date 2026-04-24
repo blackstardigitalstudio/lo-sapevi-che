@@ -112,6 +112,38 @@
     "emptyLiked": "Nessun fatto piaciuto ancora.",
     "emptyHint": "Salva le curiosità più interessanti con il bottone ❤️"
   },
+  "detail": {
+    "deepDive": "APPROFONDIMENTO",
+    "sources": "FONTI",
+    "like": "Mi piace",
+    "youLike": "Ti piace"
+  },
+  "trophy": {
+    "unlocked": "TROFEO SBLOCCATO",
+    "more": "+{{n}} altri trofei ottenuti"
+  },
+  "notif": {
+    "window": {
+      "mattina": "Mattina 7-10",
+      "pomeriggio": "Pomeriggio 12-16",
+      "sera": "Sera 18-22",
+      "sorpresa": "Sorpresa 8-22"
+    },
+    "titles": [
+      "Lo Sapevi che?",
+      "Una curiosità per te",
+      "Pronto a scoprire?",
+      "Una nuova perla di sapere",
+      "Hai 30 secondi?"
+    ],
+    "bodies": [
+      "Una curiosità ti aspetta ✨",
+      "Scopri qualcosa di nuovo 🌟",
+      "Illumina la tua giornata con una curiosità 💡",
+      "Nuova perla di sapere disponibile 📖",
+      "Tocca per scoprire la tua curiosità del giorno 🔮"
+    ]
+  },
   "profile": {
     "title": "Profilo",
     "streak": "Serie",
@@ -135,7 +167,23 @@
     "logoutConfirmTitle": "Uscire?",
     "logoutConfirmBody": "Dovrai effettuare di nuovo il login per rientrare.",
     "about": "Informazioni",
-    "memberSince": "Iscritto dal"
+    "memberSince": "Iscritto dal",
+    "dailyNotifications": "Notifiche giornaliere",
+    "notifSummary": "{{n}} al giorno · orari casuali · {{count}} programmate",
+    "timeWindow": "Finestra oraria (orari casuali ogni giorno)",
+    "nextNotif": "Prossima: {{when}}",
+    "testPush": "Prova (3 sec)",
+    "testPushSentTitle": "Prova inviata",
+    "testPushSentBody": "Riceverai la notifica tra 3 secondi.",
+    "permissionDeniedTitle": "Permesso negato",
+    "permissionDeniedBody": "Abilita le notifiche dalle impostazioni di sistema.",
+    "simulatorTitle": "Dispositivo fisico richiesto",
+    "simulatorBody": "Le notifiche funzionano solo su dispositivi reali.",
+    "sendError": "Impossibile inviare",
+    "shareProfileMsg": "Sto esplorando il mondo con Lo Sapevi che? 🔮\n\n📖 {{seen}} curiosità lette\n❤️ {{liked}} preferite\n🔥 Streak: {{streak}} giorni\n🏆 {{trophies}} trofei sbloccati\n\nScopri anche tu curiosità affascinanti ogni giorno!",
+    "appVersion": "Lo Sapevi che? · v1.0",
+    "notifTitle": "Lo Sapevi che?",
+    "testNotifBody": "Questa è una notifica di prova ✨"
   },
   "security": {
     "title": "Sicurezza",

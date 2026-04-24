@@ -8,36 +8,31 @@ import * as Device from "expo-device";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api } from "./api";
+import i18n from "./i18n";
 
 const STATE_KEY = "@losapevi_notifs_state_v3";
 
 export type WindowKey = "mattina" | "pomeriggio" | "sera" | "sorpresa";
 
-export const WINDOWS: Record<WindowKey, { label: string; icon: string; startHour: number; endHour: number }> = {
-  mattina: { label: "Mattina 7-10", icon: "sunny", startHour: 7, endHour: 10 },
-  pomeriggio: { label: "Pomeriggio 12-16", icon: "partly-sunny", startHour: 12, endHour: 16 },
-  sera: { label: "Sera 18-22", icon: "moon", startHour: 18, endHour: 22 },
-  sorpresa: { label: "Sorpresa 8-22", icon: "dice", startHour: 8, endHour: 22 },
+export const WINDOWS: Record<WindowKey, { labelKey: string; icon: string; startHour: number; endHour: number }> = {
+  mattina: { labelKey: "notif.window.mattina", icon: "sunny", startHour: 7, endHour: 10 },
+  pomeriggio: { labelKey: "notif.window.pomeriggio", icon: "partly-sunny", startHour: 12, endHour: 16 },
+  sera: { labelKey: "notif.window.sera", icon: "moon", startHour: 18, endHour: 22 },
+  sorpresa: { labelKey: "notif.window.sorpresa", icon: "dice", startHour: 8, endHour: 22 },
 };
 
 export const NOTIF_PER_DAY = 4;
 export const SCHEDULE_DAYS = 25; // ~100 programmate su 25 giorni × 4/giorno
 
-const TITLES = [
-  "Lo Sapevi che?",
-  "Una curiosità per te",
-  "Pronto a scoprire?",
-  "Una nuova perla di sapere",
-  "Hai 30 secondi?",
-];
-
-const BODIES = [
-  "Una curiosità ti aspetta ✨",
-  "Scopri qualcosa di nuovo 🌟",
-  "Illumina la tua giornata con una curiosità 💡",
-  "Nuova perla di sapere disponibile 📖",
-  "Tocca per scoprire la tua curiosità del giorno 🔮",
-];
+function getTitles(): string[] {
+  return i18n.t("notif.titles", { returnObjects: true }) as string[];
+}
+function getBodies(): string[] {
+  return i18n.t("notif.bodies", { returnObjects: true }) as string[];
+}
+function getDidYouKnow(): string {
+  return i18n.t("feed.didYouKnow");
+}
 
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -134,8 +129,8 @@ export async function scheduleNotifications(windowKey: WindowKey): Promise<{
 
         // Pick a fact from pool (cycle). Fall back to generic if pool empty.
         const fact = factPool.length > 0 ? factPool[scheduled % factPool.length] : null;
-        const title = fact ? "Lo sapevi che…" : pick(TITLES);
-        const body = fact ? fact.title : pick(BODIES);
+        const title = fact ? getDidYouKnow() : pick(getTitles());
+        const body = fact ? fact.title : pick(getBodies());
         const data: any = fact ? { fact_id: fact.id } : {};
 
         try {

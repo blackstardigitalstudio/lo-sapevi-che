@@ -30,7 +30,7 @@ from seed_facts_v3 import V3_FACTS
 from image_library import image_for_fact
 
 from deps import db, client
-from services import start_prefill_scheduler, stop_prefill_scheduler
+from scheduler import start_prefill_scheduler, stop_prefill_scheduler
 from routers import auth as auth_router
 from routers import catalog as catalog_router
 from routers import facts as facts_router

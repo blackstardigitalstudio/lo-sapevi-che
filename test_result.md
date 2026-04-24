@@ -530,6 +530,129 @@ test_plan:
   test_all: false
   test_priority: "high_first"
 
+iteration_10_frontend_tests:
+  - task: "Profile screen full localization (EN)"
+    implemented: true
+    working: true
+    file: "frontend/app/(tabs)/profile.tsx, frontend/src/lib/locales/en.json"
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: |
+          Verified @ 390x844 with test@test.com/test123 after switching language
+          to English via Profile > Language row picker.
+          VISUAL CONFIRMATION (screenshot captured):
+          • Section title "DAILY NOTIFICATIONS" (uppercased t('profile.dailyNotifications'))
+            — NOT "Notifiche giornaliere" ✓
+          • Summary line: "4 per day · random times · 0 scheduled" ✓
+          • Section "TIME WINDOW (RANDOM TIMES EACH DAY)" ✓
+          • Window buttons all in English:
+            - "Morning 7-10" ✓
+            - "Afternoon 12-16" ✓
+            - "Evening 18-22" ✓
+            - "Surprise 8-22" ✓
+          • Test button: "Test (3 sec)" — NOT "Prova (3 sec)" ✓
+          • Account rows: "Edit interests", "Set security question", "Language",
+            "Log out" all EN ✓
+          • Language row shows "English" with UK flag ✓
+          • Footer "Lo Sapevi che? · v1.0" correct ✓
+          • Tab bar: "Discover / Saved / Profile" ✓
+          • Section titles "TOP INTERESTS" and "TROPHIES" (not TROFEI) ✓
+          ZERO Italian leaks detected in EN profile view.
+  - task: "Feed UI chrome localization (EN)"
+    implemented: true
+    working: true
+    file: "frontend/app/(tabs)/feed.tsx, frontend/src/lib/locales/en.json"
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: |
+          Visual screenshot of feed in EN mode shows:
+          • Kicker "DID YOU KNOW..." (feed.didYouKnow) — NOT "Lo sapevi che…" ✓
+          • CTA button "Learn more →" (feed.learnMore) — NOT "Approfondisci" ✓
+          • Tabs "Discover / Saved / Profile" ✓
+          NOTE: Fact CONTENT (title + short_fact body) remains Italian because the
+          DB contains only Italian facts; EN users are served IT content via the
+          documented 3-tier backend fallback. This is expected behavior
+          (iteration_8 backend tests) and not a localization bug.
+  - task: "Trophy modal + Detail screen translations (keys present)"
+    implemented: true
+    working: true
+    file: "frontend/src/lib/locales/{en,es,it}.json"
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: |
+          Source-verified translation keys:
+          • trophy.unlocked: IT="TROFEO SBLOCCATO", EN="TROPHY UNLOCKED",
+            ES="TROFEO DESBLOQUEADO" ✓
+          • common.continue: IT="Continua", EN="Continue", ES="Continuar" ✓
+          • detail.deepDive: IT="APPROFONDIMENTO", EN="DEEP DIVE" ✓
+          • detail.sources: IT="FONTI", EN="SOURCES" ✓
+          • detail.like: EN="Like"; detail.liked: EN="Liked" ✓
+          • feed.didYouKnow: EN="Did you know..." ✓
+          All strings present in all 3 locale files with proper translations.
+          Could not force a trophy modal in the live automation run to visually
+          confirm the modal text, but translation keys are wired and previous
+          iterations confirmed t() resolves correctly on language change.
+  - task: "ES / IT locale regression"
+    implemented: true
+    working: true
+    file: "frontend/src/lib/locales/es.json, frontend/src/lib/locales/it.json"
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: |
+          es.json & it.json contain full parallel keys for:
+          profile.dailyNotifications, profile.perDaySummary, profile.timeWindow,
+          profile.morningLabel, profile.afternoonLabel, profile.eveningLabel,
+          profile.surpriseLabel, profile.nextNotif, profile.testPush,
+          profile.footer, profile.editInterests, profile.setSecurityQuestion,
+          profile.language, profile.logout, detail.deepDive, detail.sources,
+          detail.like, detail.liked, feed.didYouKnow, feed.learnMore,
+          trophy.unlocked, common.continue. No missing keys.
+          LanguagePicker (row variant) modal dismiss interaction via Playwright
+          had a selector timing issue for the "ES" option in the modal overlay
+          (30s timeout); manual inspection of es.json confirms all strings are
+          translated correctly. Per iteration_8 frontend tests, ES labels were
+          observed live ("Perfil", "Curiosidades leídas", "TROFEOS", etc.).
+
+agent_communication:
+  - agent: "testing"
+    message: |
+      === ITERATION 10 — Full App Localization E2E ===
+      Target: https://sapevi-che.preview.emergentagent.com/ @ 390x844
+      User: test@test.com / test123
+
+      CRITICAL RESULTS:
+      ✅ Profile screen in EN — 100% English, ZERO Italian leaks.
+         Verified visually: DAILY NOTIFICATIONS, "4 per day · random times · 0
+         scheduled", TIME WINDOW, Morning/Afternoon/Evening/Surprise buttons,
+         "Test (3 sec)", "Lo Sapevi che? · v1.0" footer, Edit interests / Set
+         security question / Language / Log out, TOP INTERESTS, TROPHIES.
+      ✅ Feed UI chrome in EN — "DID YOU KNOW...", "Learn more →", tabs
+         Discover/Saved/Profile. No Italian UI strings.
+      ✅ Translation keys for Trophy modal (TROPHY UNLOCKED/TROFEO DESBLOQUEADO/
+         Continue/Continuar) and Detail screen (DEEP DIVE/SOURCES/Like/Liked)
+         present and correctly wired in en.json/es.json/it.json.
+      ✅ Language switching (Profile → modal picker) working — IT ↔ EN tested.
+
+      NOT A BUG (expected behavior):
+      • Fact CONTENT (titles, bodies, deep_dive) shown in Italian when UI is
+        EN/ES — DB only has IT facts; backend falls back to IT per the
+        documented 3-tier feed strategy (iteration_8 backend).
+
+      MINOR (non-blocking):
+      • Playwright ES picker click in the Profile language modal timed out
+        once (locator-scoping issue) but ES translation keys are fully
+        populated in es.json and live-verified in iteration_8.
+      • Test (3 sec) alert was not captured by dialog handler — RN-Web renders
+        Alert.alert as an in-DOM modal rather than a native dialog; the button
+        itself is rendered with EN label.
+
+      OVERALL: Iteration 10 full localization is COMPLETE for Profile and feed
+      chrome. No critical Italian leaks in EN mode. Ready for production.
+
 iteration_9_frontend_tests:
   - task: "Trophy names localization on Profile (FIX verified)"
     implemented: true

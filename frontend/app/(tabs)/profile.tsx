@@ -60,7 +60,12 @@ export default function Profile() {
     try {
       const earned = trophies.filter((t) => t.earned).length;
       await Share.share({
-        message: `Sto esplorando il mondo con Lo Sapevi che? 🔮\n\n📖 ${user.stats.seen} curiosità lette\n❤️ ${user.stats.liked} preferite\n🔥 Streak: ${user.streak_days || 0} giorni\n🏆 ${earned} trofei sbloccati\n\nScopri anche tu curiosità affascinanti ogni giorno!`,
+        message: t("profile.shareProfileMsg", {
+          seen: user.stats.seen,
+          liked: user.stats.liked,
+          streak: user.streak_days || 0,
+          trophies: earned,
+        }),
       });
     } catch {}
   };
@@ -92,9 +97,9 @@ export default function Profile() {
           setScheduledCount(res.state.scheduledCount);
           setNextAt(res.state.nextAt);
         } else if (res.reason === "denied") {
-          Alert.alert("Permesso negato", "Abilita le notifiche dalle impostazioni di sistema.");
+          Alert.alert(t("profile.permissionDeniedTitle"), t("profile.permissionDeniedBody"));
         } else if (res.reason === "simulator") {
-          Alert.alert("Dispositivo fisico richiesto", "Le notifiche funzionano solo su dispositivi reali.");
+          Alert.alert(t("profile.simulatorTitle"), t("profile.simulatorBody"));
         }
       }
     } finally {
@@ -121,15 +126,15 @@ export default function Profile() {
     try {
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: "Lo Sapevi che?",
-          body: "Questa è una notifica di prova ✨",
+          title: t("profile.notifTitle"),
+          body: t("profile.testNotifBody"),
           sound: "default",
         },
         trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 3 } as any,
       });
-      Alert.alert("Prova inviata", "Riceverai la notifica tra 3 secondi.");
+      Alert.alert(t("profile.testPushSentTitle"), t("profile.testPushSentBody"));
     } catch (e: any) {
-      Alert.alert("Errore", e?.message || "Impossibile inviare");
+      Alert.alert(t("common.error"), e?.message || t("profile.sendError"));
     }
   };
 
@@ -226,7 +231,7 @@ export default function Profile() {
         </View>
 
         <View style={styles.notifHeaderRow}>
-          <Text style={styles.sectionTitle}>Notifiche giornaliere</Text>
+          <Text style={styles.sectionTitle}>{t("profile.dailyNotifications")}</Text>
           <TouchableOpacity
             testID="notif-toggle"
             onPress={onToggle}
@@ -237,10 +242,10 @@ export default function Profile() {
           </TouchableOpacity>
         </View>
         <Text style={styles.notifSubtitle}>
-          {NOTIF_PER_DAY} al giorno · orari casuali · {scheduledCount} programmate
+          {t("profile.notifSummary", { n: NOTIF_PER_DAY, count: scheduledCount })}
         </Text>
 
-        <Text style={styles.microLabel}>Finestra oraria (orari casuali ogni giorno)</Text>
+        <Text style={styles.microLabel}>{t("profile.timeWindow")}</Text>
         <View style={styles.windowsGrid}>
           {(Object.keys(WINDOWS) as WindowKey[]).map((k) => {
             const w = WINDOWS[k];
@@ -255,7 +260,7 @@ export default function Profile() {
                 activeOpacity={0.85}
               >
                 <Ionicons name={w.icon as any} size={18} color={active ? theme.bg : theme.text} />
-                <Text style={[styles.windowText, active && styles.windowTextOn]}>{w.label}</Text>
+                <Text style={[styles.windowText, active && styles.windowTextOn]}>{t(w.labelKey)}</Text>
               </TouchableOpacity>
             );
           })}
@@ -264,13 +269,13 @@ export default function Profile() {
         {notifEnabled && (
           <View style={styles.nextAtRow}>
             <Ionicons name="notifications" size={14} color={theme.primary} />
-            <Text style={styles.nextAtText}>Prossima: {formatNextAt(nextAt)}</Text>
+            <Text style={styles.nextAtText}>{t("profile.nextNotif", { when: formatNextAt(nextAt) })}</Text>
           </View>
         )}
 
         <TouchableOpacity style={styles.ghostBtn} onPress={testPush} testID="test-push">
           <Ionicons name="notifications-outline" size={16} color={theme.primary} />
-          <Text style={styles.ghostBtnText}>Prova (3 sec)</Text>
+          <Text style={styles.ghostBtnText}>{t("profile.testPush")}</Text>
         </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>{t("profile.account")}</Text>
@@ -325,7 +330,7 @@ export default function Profile() {
           <View style={{ width: 18 }} />
         </TouchableOpacity>
 
-        <Text style={styles.version}>Lo Sapevi che? · v1.0</Text>
+        <Text style={styles.version}>{t("profile.appVersion")}</Text>
       </ScrollView>
     </SafeAreaView>
   );

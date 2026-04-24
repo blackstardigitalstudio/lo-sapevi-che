@@ -112,6 +112,38 @@
     "emptyLiked": "No liked facts yet.",
     "emptyHint": "Save interesting facts with the ❤️ button"
   },
+  "detail": {
+    "deepDive": "DEEP DIVE",
+    "sources": "SOURCES",
+    "like": "Like",
+    "youLike": "Liked"
+  },
+  "trophy": {
+    "unlocked": "TROPHY UNLOCKED",
+    "more": "+{{n}} more trophies earned"
+  },
+  "notif": {
+    "window": {
+      "mattina": "Morning 7-10",
+      "pomeriggio": "Afternoon 12-16",
+      "sera": "Evening 18-22",
+      "sorpresa": "Surprise 8-22"
+    },
+    "titles": [
+      "Lo Sapevi che?",
+      "A fun fact for you",
+      "Ready to discover?",
+      "A new pearl of knowledge",
+      "Got 30 seconds?"
+    ],
+    "bodies": [
+      "A fact is waiting for you ✨",
+      "Discover something new 🌟",
+      "Light up your day with a curiosity 💡",
+      "New pearl of knowledge available 📖",
+      "Tap to see today's fact 🔮"
+    ]
+  },
   "profile": {
     "title": "Profile",
     "streak": "Streak",
@@ -135,7 +167,23 @@
     "logoutConfirmTitle": "Log out?",
     "logoutConfirmBody": "You'll need to sign in again to come back.",
     "about": "About",
-    "memberSince": "Member since"
+    "memberSince": "Member since",
+    "dailyNotifications": "Daily notifications",
+    "notifSummary": "{{n}} per day · random times · {{count}} scheduled",
+    "timeWindow": "Time window (random times each day)",
+    "nextNotif": "Next: {{when}}",
+    "testPush": "Test (3 sec)",
+    "testPushSentTitle": "Test sent",
+    "testPushSentBody": "You'll get the notification in 3 seconds.",
+    "permissionDeniedTitle": "Permission denied",
+    "permissionDeniedBody": "Enable notifications from system settings.",
+    "simulatorTitle": "Physical device required",
+    "simulatorBody": "Notifications only work on real devices.",
+    "sendError": "Can't send",
+    "shareProfileMsg": "I'm exploring the world with Lo Sapevi che? 🔮\n\n📖 {{seen}} facts read\n❤️ {{liked}} favourites\n🔥 Streak: {{streak}} days\n🏆 {{trophies}} trophies unlocked\n\nDiscover fascinating facts every day!",
+    "appVersion": "Lo Sapevi che? · v1.0",
+    "notifTitle": "Lo Sapevi che?",
+    "testNotifBody": "This is a test notification ✨"
   },
   "security": {
     "title": "Security",

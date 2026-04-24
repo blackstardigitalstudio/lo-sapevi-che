@@ -10,10 +10,9 @@ from seed_facts import CATEGORIES
 from image_library import image_for_fact
 from deps import db, current_user
 from models import ReactIn, GenerateIn, BulkGenerateIn
-from services import (
-    TROPHIES, update_trophies_for_user,
-    generate_fact_ai, pick_weighted,
-)
+from trophies import TROPHIES, update_trophies_for_user
+from ai import generate_fact_ai
+from ranking import pick_weighted
 
 router = APIRouter(tags=["facts"])
 

@@ -243,7 +243,8 @@ export default function Onboarding() {
             : t("onboarding.selectedCount", { n: selected.size })}
         </Text>
         <TouchableOpacity
-          testID="onboarding-continue"
+          testID="onb-start"
+          accessibilityLabel="onboarding-continue"
           style={[styles.cta, selected.size < 3 && styles.ctaDisabled]}
           disabled={selected.size < 3 || saving}
           onPress={onContinue}

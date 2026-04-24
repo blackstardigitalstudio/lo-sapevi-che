@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { api, theme } from "../../src/lib/api";
 
 const { width } = Dimensions.get("window");
@@ -34,6 +35,7 @@ type Fact = {
 
 export default function Detail() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [fact, setFact] = useState<Fact | null>(null);
   const [loading, setLoading] = useState(true);
@@ -68,7 +70,7 @@ export default function Detail() {
     if (!fact) return;
     try {
       await Share.share({
-        message: `Lo sapevi che…\n\n${fact.title}\n\n${fact.short_fact}\n\n— Lo Sapevi che? ✨`,
+        message: t("feed.shareMessage", { title: fact.title, short: fact.short_fact }),
       });
     } catch {}
   };
@@ -101,7 +103,7 @@ export default function Detail() {
                 <Ionicons name="sparkles" size={12} color={theme.primary} />
                 <Text style={styles.catPillText}>{fact.category}</Text>
               </View>
-              <Text style={styles.kicker}>Lo sapevi che…</Text>
+              <Text style={styles.kicker}>{t("feed.didYouKnow")}</Text>
               <Text style={styles.heroTitle}>{fact.title}</Text>
             </View>
           </SafeAreaView>
@@ -112,7 +114,7 @@ export default function Detail() {
 
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>APPROFONDIMENTO</Text>
+            <Text style={styles.dividerText}>{t("detail.deepDive")}</Text>
             <View style={styles.dividerLine} />
           </View>
 
@@ -120,7 +122,7 @@ export default function Detail() {
 
           {fact.sources && fact.sources.length > 0 && (
             <View style={styles.sourcesBox}>
-              <Text style={styles.sourcesTitle}>FONTI</Text>
+              <Text style={styles.sourcesTitle}>{t("detail.sources")}</Text>
               {fact.sources.map((s, idx) => (
                 <TouchableOpacity
                   key={idx}
@@ -153,7 +155,7 @@ export default function Detail() {
             color={fact.is_liked ? theme.bg : theme.text}
           />
           <Text style={[styles.actionText, fact.is_liked && styles.actionTextOn]}>
-            {fact.is_liked ? "Ti piace" : "Mi piace"}
+            {fact.is_liked ? t("detail.youLike") : t("detail.like")}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity

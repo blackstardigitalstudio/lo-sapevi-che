@@ -71,7 +71,7 @@ export default function Register() {
       );
       router.replace("/onboarding");
     } catch (e: any) {
-      setError(e.message || "Errore");
+      setError(e.message || t("common.error"));
     } finally {
       setLoading(false);
     }

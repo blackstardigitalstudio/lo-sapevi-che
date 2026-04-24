@@ -1,6 +1,7 @@
 import React from "react";
 import { Modal, View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { theme } from "../lib/api";
 
 export type Trophy = {
@@ -17,6 +18,7 @@ export function TrophyModal({
   trophies: Trophy[];
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const visible = trophies.length > 0;
   const first = trophies[0];
 
@@ -27,14 +29,14 @@ export function TrophyModal({
           <View style={styles.iconWrap}>
             <Ionicons name={(first?.icon || "trophy") as any} size={42} color={theme.bg} />
           </View>
-          <Text style={styles.kicker}>TROFEO SBLOCCATO</Text>
+          <Text style={styles.kicker}>{t("trophy.unlocked")}</Text>
           <Text style={styles.title}>{first?.name}</Text>
           <Text style={styles.desc}>{first?.desc}</Text>
           {trophies.length > 1 && (
-            <Text style={styles.more}>+{trophies.length - 1} altri trofei ottenuti</Text>
+            <Text style={styles.more}>{t("trophy.more", { n: trophies.length - 1 })}</Text>
           )}
           <TouchableOpacity style={styles.btn} onPress={onClose} testID="trophy-modal-close">
-            <Text style={styles.btnText}>Continua</Text>
+            <Text style={styles.btnText}>{t("common.continue")}</Text>
           </TouchableOpacity>
         </View>
       </View>

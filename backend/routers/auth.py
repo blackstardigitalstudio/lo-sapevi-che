@@ -15,7 +15,7 @@ from models import (
     SetSecurityQuestionIn, SetLanguageIn,
     UpdateInterestsIn, UpdateSubInterestsIn, PushTokenIn,
 )
-from services import TROPHIES, update_trophies_for_user
+from trophies import TROPHIES, update_trophies_for_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
