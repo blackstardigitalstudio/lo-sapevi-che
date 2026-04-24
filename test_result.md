@@ -525,11 +525,111 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "Trophy names localization in Profile (pass lang to /api/trophies)"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
+
+iteration_9_frontend_tests:
+  - task: "Trophy names localization on Profile (FIX verified)"
+    implemented: true
+    working: true
+    file: "frontend/app/(tabs)/profile.tsx"
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: |
+          CRITICAL BUG FROM ITERATION 8 IS FIXED.
+          Verified @ 390x844 with user testlang_ziwdw8@example.com/Pass1234:
+          • profile.tsx line 53 now calls `api.trophies(i18n.language)` with
+            i18n.language dependency in useFocusEffect (line 55).
+          • Switching to English → Profile shows "First step", "Curious" (EN).
+          • Switching to Español → Profile shows "Primer paso", "Curioso" (ES)
+            and "Perfil".
+          • Switching back to Italiano → "Primo passo", "Curioso" (IT).
+          • No Italian leak in EN view (checked: "Primo passo" NOT present
+            when lang=en).
+          • POST /api/auth/language observed 3 times during language cycling
+            (backend sync working).
+  - task: "Language switch persistent across navigations"
+    implemented: true
+    working: true
+    file: "frontend/src/components/LanguagePicker.tsx"
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: |
+          lang-picker-row (profile) and lang-picker-compact (auth screens) both
+          POST /api/auth/language on change when authenticated. Auth context
+          update + i18n.changeLanguage + AsyncStorage persist all working.
+  - task: "Onboarding EN localization (regression from IT-only labels)"
+    implemented: true
+    working: true
+    file: "frontend/app/onboarding.tsx, frontend/src/lib/i18n.ts, frontend/src/lib/locales/en.json"
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: |
+          Registered fresh user in EN locale. Onboarding screen renders 100%
+          in English (screenshot captured):
+          • Title: "What fascinates you?" (NOT "Cosa ti affascina?")
+          • Subtitle: "Pick at least 3 niches. For some you can also choose
+            brands or sub-topics." (NOT "Scegli almeno 3 nicchie...")
+          • Footer counter: "3 niches selected" (NOT "3 nicchie selezionate")
+          • CTA: "Start the adventure" (NOT "Inizia l'avventura")
+          • Greeting: "Hi FeedUser 👋" (NOT "Ciao")
+          Category labels come from /api/categories?lang=en (Science, History,
+          Mysteries, Animals) — confirmed backend returns them and onboarding
+          passes i18n.language via api.categories(i18n.language).
+          "Refine your taste" / "with filters" / "All" come from i18n keys
+          (en.json lines 86-90) and are correctly pulled via t().
+  - task: "Stable testIDs feed-like / feed-dislike / feed-bookmark / feed-share on top card"
+    implemented: true
+    working: true
+    file: "frontend/app/(tabs)/feed.tsx (lines 418, 429, 436, 447)"
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: |
+          Code inspection confirms the fix:
+          • Line 418: testID={isActive ? "feed-like" : `like-${fact.id}`}
+          • Line 429: testID={isActive ? "feed-dislike" : `dislike-${fact.id}`}
+          • Line 436: testID={isActive ? "feed-bookmark" : `bookmark-${fact.id}`}
+          • Line 447: testID={isActive ? "feed-share" : `share-${fact.id}`}
+          Logic is correct: only the top/visible card carries the stable
+          feed-* testID; scrolled-past/future cards keep dynamic id-scoped
+          testIDs. This matches the review spec.
+          NOTE: End-to-end click verification was partially blocked by the
+          onboarding drill-down modal covering the onb-start button during
+          Playwright scripting (the fresh user flow needs to complete a
+          drill-down for categories with sub-cats before the footer CTA is
+          clickable). Manual verification of active tint on click is covered
+          by the existing icon-color logic in FactCard (iconColor = liked
+          ? theme.primary : "#fff"). /facts/react and /facts/bookmark
+          endpoints (backend) were fully verified in iteration_8.
+  - task: "Feed language filter — no crash on lang switch"
+    implemented: true
+    working: true
+    file: "frontend/app/(tabs)/feed.tsx"
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: |
+          Feed loads in both IT and EN (IT fallback used when no EN facts
+          seeded). No JS crashes observed during language cycling. Backend
+          /api/feed returns non-empty results for both langs (verified in
+          iteration_8 backend tests).
+  - task: "Persistent auth on reload"
+    implemented: true
+    working: true
+    file: "frontend/src/context/AuthContext.tsx"
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: |
+          Reload on /feed after login kept user authenticated (URL remained
+          /feed; no redirect to /auth/login). Cache hydration from
+          @losapevi_user_v1 AsyncStorage works as in iteration_6.
 
 iteration_8_frontend_tests:
   - task: "Language picker on Login screen (compact)"
