@@ -99,15 +99,20 @@ def pick_weighted(user: Dict[str, Any], facts: List[Dict[str, Any]], n: int) -> 
         used_sub_counts[sub_key] = used_sub_counts.get(sub_key, 0) + 1
         explo_added += 1
 
-    # Fill remaining from leftovers / unused
+    # Fill remaining from leftovers / unused (respecting diversity cap)
     for sc, f in scored:
         if len(picked) >= n:
             break
         if f["id"] in picked_ids:
             continue
+        sub_key = f"{f['category']}::{f.get('sub_category') or ''}"
+        if used_sub_counts.get(sub_key, 0) >= cap_per_sub:
+            continue
         picked.append(f)
         picked_ids.add(f["id"])
-    for f in leftovers:
+        used_sub_counts[sub_key] = used_sub_counts.get(sub_key, 0) + 1
+    # Final fallback — if still under target, relax diversity cap to avoid underfilled feed
+    for f in leftovers + [x[1] for x in scored]:
         if len(picked) >= n:
             break
         if f["id"] in picked_ids:
