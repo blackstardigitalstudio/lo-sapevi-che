@@ -177,7 +177,7 @@ export default function Feed() {
     setGenerating(false);
   };
 
-  const renderItem = ({ item }: { item: Fact }) => {
+  const renderItem = ({ item, index }: { item: Fact; index: number }) => {
     const isLiked = liked.has(item.id);
     const isBookmarked = bookmarked.has(item.id);
     return (
@@ -186,6 +186,7 @@ export default function Feed() {
         height={cardHeight}
         isLiked={isLiked}
         isBookmarked={isBookmarked}
+        isActive={index === 0}
         onDoubleTap={() => !isLiked && onLike(item)}
         onLike={() => onLike(item)}
         onDislike={() => onDislike(item)}
@@ -298,6 +299,7 @@ function DoubleTapCard({
   height: h,
   isLiked,
   isBookmarked,
+  isActive,
   onDoubleTap,
   onLike,
   onDislike,
@@ -309,6 +311,7 @@ function DoubleTapCard({
   height: number;
   isLiked: boolean;
   isBookmarked: boolean;
+  isActive?: boolean;
   onDoubleTap: () => void;
   onLike: () => void;
   onDislike: () => void;
@@ -412,7 +415,7 @@ function DoubleTapCard({
 
               <View style={styles.sideActions}>
                 <TouchableOpacity
-                  testID={`like-${fact.id}`}
+                  testID={isActive ? "feed-like" : `like-${fact.id}`}
                   style={styles.iconBtn}
                   onPress={onLike}
                 >
@@ -423,14 +426,14 @@ function DoubleTapCard({
                   />
                 </TouchableOpacity>
                 <TouchableOpacity
-                  testID={`dislike-${fact.id}`}
+                  testID={isActive ? "feed-dislike" : `dislike-${fact.id}`}
                   style={styles.iconBtn}
                   onPress={onDislike}
                 >
                   <Ionicons name="thumbs-down-outline" size={24} color={theme.text} />
                 </TouchableOpacity>
                 <TouchableOpacity
-                  testID={`bookmark-${fact.id}`}
+                  testID={isActive ? "feed-bookmark" : `bookmark-${fact.id}`}
                   style={styles.iconBtn}
                   onPress={onBookmark}
                 >
@@ -441,7 +444,7 @@ function DoubleTapCard({
                   />
                 </TouchableOpacity>
                 <TouchableOpacity
-                  testID={`share-${fact.id}`}
+                  testID={isActive ? "feed-share" : `share-${fact.id}`}
                   style={styles.iconBtn}
                   onPress={onShare}
                 >

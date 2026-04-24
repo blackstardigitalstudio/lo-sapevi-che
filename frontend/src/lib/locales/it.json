@@ -82,7 +82,11 @@
     "selectMore": "Seleziona almeno {{n}} in più",
     "startAdventure": "Inizia l'avventura",
     "subTitle": "Personalizza {{cat}}",
-    "subSubtitle": "Scegli le sottocategorie che più ti interessano"
+    "subSubtitle": "Scegli le sottocategorie che più ti interessano",
+    "refineTaste": "Affina i tuoi gusti",
+    "refineHint": "Lascia vuoto per vedere tutto, oppure scegli i preferiti",
+    "all": "Tutti",
+    "withFilters": "con filtri"
   },
   "tabs": {
     "feed": "Scopri",

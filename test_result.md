@@ -866,6 +866,42 @@ agent_communication:
 
       No broken endpoints. Refactor into models/deps/services preserves all
       functionality. No regressions detected.
+  - agent: "testing"
+    message: |
+      === POST-MODULARIZATION REGRESSION — Backend Testing Complete (18/18 PASS) ===
+      Target: https://sapevi-che.preview.emergentagent.com/api
+      Context: Full split of server.py into routers/ package
+      (auth.py, catalog.py, facts.py, misc.py). server.py now 162 lines
+      (startup/shutdown + router wiring only). All sub-routers mount under
+      /api via api.include_router.
+
+      Executed /app/backend_test.py comprehensive suite (18 tests):
+      ✅ /api/health → ok:true, facts=276 (≥200)
+      ✅ /api/auth/register full payload → 200 language:"it"; missing security fields → 422
+      ✅ /api/auth/login → 200 with token+user
+      ✅ /api/auth/forgot/question → 200 happy, 404 unknown email
+      ✅ /api/auth/forgot/reset → 401 wrong answer; 200 with normalized "  FIDO  "; old pwd login 401, new pwd login 200
+      ✅ /api/auth/security-question → 401 w/o token, 401 wrong pwd, 200 success
+      ✅ /api/auth/me → has_security_question bool + language field present
+      ✅ /api/auth/language → 422 for "xx", 401 w/o token, 200 for "en"; /auth/me reflects "en"
+      ✅ GET /api/categories (no lang + lang=en + lang=es) → 29 items each with localized labels
+      ✅ GET /api/trophies (no lang + lang=en + lang=es) → 401 w/o token; 10 trophies with localized names
+      ✅ GET /api/subcategories/Scienza → 200; /api/subcategories/NopeCat → 404
+      ✅ GET /api/feed (lang=it) → non-empty, facts language=="it"
+      ✅ GET /api/feed (lang=en) → non-empty via IT fallback, no 500
+      ✅ POST /api/facts/{id}/react like → returns new_weight + new_sub_weight
+      ✅ POST /api/facts/{id}/react dislike → returns both weights; pick_weighted stable
+      ✅ POST /api/facts/{id}/bookmark toggle → on/off; GET /api/facts/bookmarks reflects state
+      ✅ GET /api/facts/liked → returns liked facts after /react like
+      ✅ POST /api/auth/checkin → 200 with streak_days
+      ✅ GET /api/preview → 29 entries with category + image_url
+      ✅ POST /api/facts/generate (user lang=es, category="Ciencia") → 400 canonical enforced;
+         (category="Scienza") → 200 with language="es" via Claude Sonnet 4.5 (no 503)
+
+      All endpoints behave identically to pre-refactor baseline. /api prefix
+      still works for ALL endpoints across all 4 routers. No regressions
+      detected post-modularization.
+
   - agent: "main"
     message: |
       === ITERATION 8 — Multilingual E2E + Personalization v2 ===

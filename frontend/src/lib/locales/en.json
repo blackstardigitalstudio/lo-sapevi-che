@@ -82,7 +82,11 @@
     "selectMore": "Pick {{n}} more",
     "startAdventure": "Start the adventure",
     "subTitle": "Customize {{cat}}",
-    "subSubtitle": "Pick the sub-categories you enjoy most"
+    "subSubtitle": "Pick the sub-categories you enjoy most",
+    "refineTaste": "Refine your taste",
+    "refineHint": "Leave empty to see everything, or pick your favourites",
+    "all": "All",
+    "withFilters": "with filters"
   },
   "tabs": {
     "feed": "Discover",

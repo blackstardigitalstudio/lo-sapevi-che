@@ -157,19 +157,21 @@ export default function Onboarding() {
                   <View style={styles.cardContent}>
                     <View style={styles.iconRow}>
                       <Ionicons name={p.icon as any} size={18} color={on ? theme.primary : theme.text} />
-                      <Text style={[styles.cardCat, on && styles.cardCatOn]}>{p.category}</Text>
+                      <Text style={[styles.cardCat, on && styles.cardCatOn]}>
+                        {catInfo[p.category]?.label || p.category}
+                      </Text>
                       <View style={styles.checkbox}>
                         {on && <Ionicons name="checkmark" size={14} color={theme.bg} />}
                       </View>
                     </View>
-                    <Text style={styles.sampleKicker}>Lo sapevi che…</Text>
+                    <Text style={styles.sampleKicker}>{t("feed.didYouKnow")}</Text>
                     <Text style={styles.sampleTitle} numberOfLines={3}>
                       {p.sample_title}
                     </Text>
                     {hasSubs && (
                       <View style={styles.filterHint}>
                         <Ionicons name="options" size={10} color={theme.primary} />
-                        <Text style={styles.filterHintText}>con filtri</Text>
+                        <Text style={styles.filterHintText}>{t("onboarding.withFilters")}</Text>
                       </View>
                     )}
                   </View>
@@ -181,10 +183,8 @@ export default function Onboarding() {
 
         {drillDownCategories.length > 0 && (
           <View style={styles.drillWrap} testID="drilldown-section">
-            <Text style={styles.drillTitle}>Affina i tuoi gusti</Text>
-            <Text style={styles.drillSubtitle}>
-              Lascia vuoto per vedere tutto, oppure scegli i preferiti
-            </Text>
+            <Text style={styles.drillTitle}>{t("onboarding.refineTaste")}</Text>
+            <Text style={styles.drillSubtitle}>{t("onboarding.refineHint")}</Text>
 
             {drillDownCategories.map((cat) => {
               const subs = catInfo[cat]?.subcategories || [];
@@ -195,7 +195,7 @@ export default function Onboarding() {
                   <Text style={styles.drillCatName}>
                     <Ionicons name={catInfo[cat]?.icon as any} size={14} color={theme.primary} />
                     {"  "}
-                    {cat}
+                    {catInfo[cat]?.label || cat}
                   </Text>
                   <View style={styles.subChipsRow}>
                     <TouchableOpacity
@@ -210,7 +210,7 @@ export default function Onboarding() {
                       }
                     >
                       <Text style={[styles.subChipText, allMode && styles.subChipTextOn]}>
-                        Tutti
+                        {t("onboarding.all")}
                       </Text>
                     </TouchableOpacity>
                     {subs.map((s) => {
