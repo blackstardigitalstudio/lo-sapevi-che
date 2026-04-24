@@ -21,13 +21,33 @@ _scheduler = None
 
 
 async def prefill_run():
+    """Generate facts cycling through IT/EN/ES to keep all languages balanced.
+
+    Each run rotates languages so the DB fills up evenly over time.
+    Also prioritizes low-count (category, language) pairs.
+    """
     try:
         total = await db.facts.count_documents({})
         if total >= PREFILL_MAX_FACTS:
             logger.info(f"[prefill] Skipped: DB has {total} facts (cap={PREFILL_MAX_FACTS}).")
             return
 
-        pipeline = [{"$group": {"_id": "$category", "n": {"$sum": 1}}}]
+        # Rotate language by run: counter persisted in DB meta
+        meta = await db.meta.find_one({"_id": "prefill"}) or {"_id": "prefill", "run_count": 0}
+        run_count = meta.get("run_count", 0)
+        languages = ["it", "en", "es"]
+        # Each run picks ONE primary language (round-robin)
+        primary_lang = languages[run_count % len(languages)]
+        await db.meta.update_one(
+            {"_id": "prefill"}, {"$set": {"run_count": run_count + 1}}, upsert=True
+        )
+        logger.info(f"[prefill] run #{run_count} · primary language: {primary_lang}")
+
+        # Per-language count per category — pick categories with least content
+        pipeline = [
+            {"$match": {"language": primary_lang}},
+            {"$group": {"_id": "$category", "n": {"$sum": 1}}},
+        ]
         counts = {c["_id"]: c["n"] async for c in db.facts.aggregate(pipeline)}
         ranked = sorted(CATEGORIES, key=lambda c: (counts.get(c, 0), random.random()))
         to_fill = ranked[: PREFILL_BATCH_SIZE]
@@ -36,7 +56,7 @@ async def prefill_run():
         for cat in to_fill:
             if await db.facts.count_documents({}) >= PREFILL_MAX_FACTS:
                 break
-            ai = await generate_fact_ai(cat)
+            ai = await generate_fact_ai(cat, primary_lang)
             if not ai:
                 continue
             if await db.facts.find_one({"title": ai["title"]}):
@@ -52,7 +72,7 @@ async def prefill_run():
                 "sub_category": None,
                 "image_url": img_url,
                 "source": "ai_prefill",
-                "language": "it",
+                "language": primary_lang,
                 "created_at": datetime.now(timezone.utc),
             }
             await db.facts.insert_one(doc)
@@ -61,7 +81,7 @@ async def prefill_run():
 
         new_total = await db.facts.count_documents({})
         logger.info(
-            f"[prefill] Added {added} facts across {len(to_fill)} categories. "
+            f"[prefill] Added {added} {primary_lang}-facts across {len(to_fill)} categories. "
             f"DB total now {new_total}/{PREFILL_MAX_FACTS}."
         )
     except Exception as e:
