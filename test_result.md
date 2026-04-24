@@ -982,6 +982,44 @@ iteration_8_backend_tests:
 agent_communication:
   - agent: "testing"
     message: |
+      === REGRESSION POST seed_en_es.py — Backend Testing Complete (11/11 + 18/18 PASS) ===
+      Target: https://sapevi-che.preview.emergentagent.com/api
+      Context: Main agent seeded ~113 AI-generated facts (EN=57, ES=59) via
+      seed_en_es.py. Objective: confirm multilingual feed now serves native-language
+      content (no IT fallback needed) and no existing functionality regressed.
+
+      Executed /app/regression_seed_en_es.py (11 targeted tests):
+      ✅ /health → ok:true, facts=407 (≥400 threshold met; matches expected post-seed).
+      ✅ POST /auth/register fresh user — defaults to language="it", returns token.
+      ✅ POST /auth/language {"language":"en"} — 200, user.language updated to "en".
+      ✅ GET /feed?limit=10 (EN user) — returned 10 facts, ALL with language="en".
+         No fallback to IT needed. 🎯 This is the core review-request verification.
+      ✅ POST /auth/language {"language":"es"} — 200.
+         GET /feed?limit=10 — returned 10 facts, ALL with language="es".
+      ✅ POST /auth/language {"language":"it"} — 200.
+         GET /feed?limit=10 — returned 10 facts, ALL with language="it".
+      ✅ POST /facts/{id}/react {"action":"like"} — 200 with new_weight=1.15,
+         new_sub_weight=0.25 (personalization v2 intact).
+      ✅ GET /categories?lang=en — 29 items, canonical names preserved
+         (Scienza/Storia/Misteri), labels localized (Science/History/Mysteries).
+      ✅ GET /trophies?lang=en (auth'd) — 10 trophies, first_step.name="First step",
+         desc="Read your first fact."
+      ✅ GET /trophies?lang=es — first_step.name="Primer paso".
+      ✅ Feed language purity walk (20 facts per lang): lang=en → 10/10 en,
+         lang=es → 11/11 es, lang=it → 20/20 it. ZERO language leaks.
+
+      Also executed the full /app/backend_test.py suite for regression:
+      ✅ 18/18 PASS (health, register, login, forgot flow, security-question,
+         auth/language, categories+lang, trophies+lang, feed+fallback, react
+         with new_weight+new_sub_weight, AI generate es, checkin, me, preview,
+         subcategories, bookmark, liked). No regressions.
+
+      VERDICT: Seed script seed_en_es.py did NOT break anything. The multilingual
+      feed now correctly serves native-language content to EN and ES users
+      (previously fell back to IT). No critical or minor issues found.
+
+  - agent: "testing"
+    message: |
       === ITERATION 8 — Backend Testing Complete (17/17 PASS) ===
       Target: https://sapevi-che.preview.emergentagent.com/api
       
