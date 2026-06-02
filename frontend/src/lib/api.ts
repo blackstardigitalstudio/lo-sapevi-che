@@ -13,7 +13,7 @@ export class ApiError extends Error {
   }
 }
 
-async function authHeaders() {
+async function authHeaders(): Promise<Record<string, string>> {
   const token = await AsyncStorage.getItem(TOKEN_KEY);
   return token ? { Authorization: `Bearer ${token}` } : {};
 }

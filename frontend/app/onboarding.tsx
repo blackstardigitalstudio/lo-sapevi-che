@@ -26,6 +26,7 @@ type Preview = {
 
 type CategoryInfo = {
   name: string;
+  label: string;
   icon: string;
   has_subcategories: boolean;
   subcategories: string[];
