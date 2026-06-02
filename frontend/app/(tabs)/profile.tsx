@@ -9,7 +9,10 @@ import {
   Alert,
   Platform,
   Share,
+  Linking,
 } from "react-native";
+
+const PAYPAL_URL = "https://paypal.me/cipollino66";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
@@ -308,6 +311,17 @@ export default function Profile() {
 
         <LanguagePicker variant="row" onChange={() => {}} />
 
+        <Text style={styles.sectionTitle}>{t("profile.support")}</Text>
+        <Text style={styles.supportHint}>{t("profile.supportHint")}</Text>
+        <TouchableOpacity
+          style={styles.coffeeBtn}
+          onPress={() => Linking.openURL(PAYPAL_URL)}
+          testID="buy-coffee"
+        >
+          <Ionicons name="cafe" size={20} color={theme.bg} />
+          <Text style={styles.coffeeText}>{t("profile.buyCoffee")}</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={[styles.rowBtn, { borderColor: theme.error }]}
           onPress={() => {
@@ -349,6 +363,18 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.bg },
   loader: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: theme.bg },
   scroll: { padding: 24, paddingBottom: 80 },
+  supportHint: { color: theme.textMuted, fontSize: 13, marginBottom: 10, lineHeight: 18 },
+  coffeeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: theme.primary,
+    borderRadius: 14,
+    paddingVertical: 14,
+    marginBottom: 16,
+  },
+  coffeeText: { color: theme.bg, fontSize: 15, fontWeight: "700" },
   header: { alignItems: "center", marginBottom: 24 },
   avatar: {
     width: 84,

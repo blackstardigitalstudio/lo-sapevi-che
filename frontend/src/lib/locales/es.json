@@ -157,6 +157,9 @@
     "liked": "Gustan",
     "trophies": "Trofeos",
     "account": "Cuenta",
+    "support": "Apóyanos",
+    "supportHint": "Si te gusta esta app, invítame a un café: ayuda a mantenerla gratis y actualizada.",
+    "buyCoffee": "Invítame a un café",
     "editInterests": "Editar intereses",
     "securityQuestion": "Pregunta de seguridad",
     "setSecurityQuestion": "Configurar pregunta de seguridad",
@@ -182,7 +185,7 @@
     "sendError": "No se puede enviar",
     "shareProfileMsg": "Estoy explorando el mundo con Lo Sapevi che? 🔮\n\n📖 {{seen}} curiosidades leídas\n❤️ {{liked}} favoritas\n🔥 Racha: {{streak}} días\n🏆 {{trophies}} trofeos desbloqueados\n\n¡Descubre curiosidades fascinantes cada día!",
     "appVersion": "Lo Sapevi che? · v1.0",
-    "notifTitle": "Lo Sapevi che?",
+    "notifTitle": "¿Sabías que?",
     "testNotifBody": "Esta es una notificación de prueba ✨"
   },
   "security": {
