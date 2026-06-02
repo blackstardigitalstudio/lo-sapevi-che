@@ -1,21 +1,37 @@
-"""AI fact generation via Emergent LLM Key (Claude Sonnet 4.5)."""
+"""AI fact generation via Google Gemini (free tier).
+
+Standalone replacement for the former Emergent LLM integration. Get a free
+API key at https://aistudio.google.com/apikey and set it as GEMINI_API_KEY.
+"""
 import json
-import uuid
 import logging
 from typing import Dict, Any, Optional
 
 from i18n import LANG_PROMPT_NAME
-from deps import EMERGENT_LLM_KEY
+from deps import GEMINI_API_KEY, GEMINI_MODEL
 
 logger = logging.getLogger("losapevi")
 
+_configured = False
+
+
+def _ensure_configured() -> bool:
+    global _configured
+    if not GEMINI_API_KEY:
+        logger.warning("GEMINI_API_KEY not set — AI fact generation disabled.")
+        return False
+    if not _configured:
+        import google.generativeai as genai
+        genai.configure(api_key=GEMINI_API_KEY)
+        _configured = True
+    return True
+
 
 async def generate_fact_ai(category: str, language: str = "it") -> Optional[Dict[str, Any]]:
-    try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage
-    except Exception as e:
-        logger.error(f"emergentintegrations import failed: {e}")
+    if not _ensure_configured():
         return None
+
+    import google.generativeai as genai
 
     lang_name = LANG_PROMPT_NAME.get(language, "italiano")
     format_hook = {
@@ -33,19 +49,18 @@ async def generate_fact_ai(category: str, language: str = "it") -> Optional[Dict
         "universities, museums). "
         f"Always write impeccably in {lang_name}. No markdown, pure JSON only."
     )
+    prompt = (
+        f"Generate ONE new verified curiosity for the category: '{category}'. "
+        "Avoid banal facts and look for something truly interesting and little known. "
+        f"Include 1-2 authoritative verifiable sources. Reply ONLY with the JSON. Language: {lang_name}."
+    )
     try:
-        chat = LlmChat(
-            api_key=EMERGENT_LLM_KEY,
-            session_id=f"gen-{uuid.uuid4().hex[:8]}",
-            system_message=system,
-        ).with_model("anthropic", "claude-sonnet-4-5-20250929")
-        prompt = (
-            f"Generate ONE new verified curiosity for the category: '{category}'. "
-            "Avoid banal facts and look for something truly interesting and little known. "
-            f"Include 1-2 authoritative verifiable sources. Reply ONLY with the JSON. Language: {lang_name}."
+        model = genai.GenerativeModel(
+            model_name=GEMINI_MODEL,
+            system_instruction=system,
         )
-        resp = await chat.send_message(UserMessage(text=prompt))
-        raw = (resp or "").strip()
+        response = await model.generate_content_async(prompt)
+        raw = (getattr(response, "text", "") or "").strip()
         if raw.startswith("```"):
             raw = raw.strip("`")
             if raw.startswith("json"):

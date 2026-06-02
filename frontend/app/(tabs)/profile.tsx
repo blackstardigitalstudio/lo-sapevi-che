@@ -275,7 +275,7 @@ export default function Profile() {
 
         <TouchableOpacity style={styles.ghostBtn} onPress={testPush} testID="test-push">
           <Ionicons name="notifications-outline" size={16} color={theme.primary} />
-          <Text style={styles.ghostBtnText}>{t("profile.testPush")}</Text>
+          <Text style={styles.ghostText}>{t("profile.testPush")}</Text>
         </TouchableOpacity>
 
         <Text style={styles.sectionTitle}>{t("profile.account")}</Text>

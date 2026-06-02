@@ -14,7 +14,9 @@ DB_NAME = os.environ["DB_NAME"]
 JWT_SECRET = os.environ["JWT_SECRET"]
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_MINUTES = 60 * 24 * 30  # 30 days
-EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY", "")
+# AI: Google Gemini free tier. Get a key at https://aistudio.google.com/apikey
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 
 client = AsyncIOMotorClient(MONGO_URL)
 db = client[DB_NAME]

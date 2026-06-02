@@ -1,0 +1,43 @@
+# Render Blueprint — deploys the backend API + the static web app.
+# Auto-deploys on every push to the connected branch (continuous updates).
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  # ---------------- Backend API (FastAPI) ----------------
+  - type: web
+    name: lo-sapevi-che-api
+    runtime: python
+    plan: free
+    region: frankfurt
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: MONGO_URL          # set in Render dashboard (MongoDB Atlas connection string)
+        sync: false
+      - key: DB_NAME
+        value: lo_sapevi_che
+      - key: JWT_SECRET
+        generateValue: true     # Render generates a strong secret
+      - key: GEMINI_API_KEY     # free key: https://aistudio.google.com/apikey (leave unset to disable AI generation)
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+
+  # ---------------- Web app (Expo static export) ----------------
+  - type: web
+    name: lo-sapevi-che-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: yarn install --frozen-lockfile && npx expo export -p web
+    staticPublishPath: dist
+    envVars:
+      # Matches the API service public URL (Render derives it from the service name).
+      # If you rename the API service, update this value to match.
+      - key: EXPO_PUBLIC_BACKEND_URL
+        value: https://lo-sapevi-che-api.onrender.com
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
