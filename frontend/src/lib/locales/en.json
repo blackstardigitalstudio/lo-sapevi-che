@@ -182,7 +182,7 @@
     "sendError": "Can't send",
     "shareProfileMsg": "I'm exploring the world with Lo Sapevi che? 🔮\n\n📖 {{seen}} facts read\n❤️ {{liked}} favourites\n🔥 Streak: {{streak}} days\n🏆 {{trophies}} trophies unlocked\n\nDiscover fascinating facts every day!",
     "appVersion": "Lo Sapevi che? · v1.0",
-    "notifTitle": "Lo Sapevi che?",
+    "notifTitle": "Did you know?",
     "testNotifBody": "This is a test notification ✨"
   },
   "security": {
