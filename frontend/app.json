@@ -2,6 +2,7 @@
   "expo": {
     "name": "Lo Sapevi che?",
     "slug": "lo-sapevi-che",
+    "owner": "blackstark",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -15,6 +16,7 @@
       }
     },
     "android": {
+      "package": "com.losapevi.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#05060A"
@@ -52,6 +54,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "229ae566-dbba-43af-adb6-58c1d4df408d"
+      }
     }
   }
 }
