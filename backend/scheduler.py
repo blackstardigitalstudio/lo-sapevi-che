@@ -14,7 +14,10 @@ from ai import generate_fact_ai
 logger = logging.getLogger("losapevi")
 
 PREFILL_INTERVAL_HOURS = int(os.environ.get("PREFILL_INTERVAL_HOURS", "12"))
-PREFILL_BATCH_SIZE = int(os.environ.get("PREFILL_BATCH_SIZE", "10"))
+# Default batch of 5 + ~13s spacing keeps generation under Gemini's free-tier
+# limit of 5 requests/minute (raise these once on a paid Gemini plan).
+PREFILL_BATCH_SIZE = int(os.environ.get("PREFILL_BATCH_SIZE", "5"))
+PREFILL_REQUEST_SPACING_SECONDS = float(os.environ.get("PREFILL_REQUEST_SPACING_SECONDS", "13"))
 PREFILL_MAX_FACTS = int(os.environ.get("PREFILL_MAX_FACTS", "1000"))
 
 _scheduler = None
@@ -77,7 +80,8 @@ async def prefill_run():
             }
             await db.facts.insert_one(doc)
             added += 1
-            await asyncio.sleep(0.3)
+            # Space requests to respect Gemini's free-tier rate limit (5 req/min).
+            await asyncio.sleep(PREFILL_REQUEST_SPACING_SECONDS)
 
         new_total = await db.facts.count_documents({})
         logger.info(
