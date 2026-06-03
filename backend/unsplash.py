@@ -73,8 +73,35 @@ KEYWORD_QUERY = {
     "caffè": "coffee espresso", "cioccolat": "chocolate", "vino": "wine",
     "leonardo": "renaissance painting da vinci", "napoleon": "napoleon history",
     "piramid": "egypt pyramids", "colosseo": "colosseum rome", "titanic": "titanic ocean ship",
+    # --- car / motorcycle brands & motorsport entities (catch the subject in the title) ---
+    "ferrari": "ferrari sports car", "lamborghini": "lamborghini supercar",
+    "porsche": "porsche sports car", "bugatti": "bugatti hypercar",
+    "maserati": "maserati car", "alfa romeo": "alfa romeo car", "fiat": "fiat car",
+    "tesla": "tesla electric car", "rolls-royce": "rolls royce luxury car",
+    "aston martin": "aston martin car", "mercedes": "mercedes car", "bmw": "bmw car",
+    "lambretta": "lambretta scooter", "vespa": "vespa scooter italy",
+    "ducati": "ducati motorcycle", "harley": "harley davidson motorcycle",
+    "yamaha": "yamaha motorcycle", "kawasaki": "kawasaki motorcycle",
+    "motogp": "motogp motorcycle racing", "valentino rossi": "motogp motorcycle racing",
+    "formula 1": "formula 1 race car", "formula uno": "formula 1 race car",
+    "rally": "rally car racing", "nascar": "nascar race car", "le mans": "le mans race car",
     # ape (bee) needs a trailing space in the curated catalog to avoid matching
     # other words; here we match the standalone stem carefully in _build_query.
+}
+
+# Italian sub-category -> English Unsplash query (Italian terms search poorly).
+SUBCATEGORY_QUERY = {
+    "Ferrari": "ferrari sports car", "Lamborghini": "lamborghini supercar",
+    "Porsche": "porsche sports car", "Tesla": "tesla electric car",
+    "Fiat": "fiat car", "BMW": "bmw car", "Mercedes": "mercedes car",
+    "Alfa Romeo": "alfa romeo car", "Maserati": "maserati car", "Bugatti": "bugatti hypercar",
+    "Aston Martin": "aston martin car", "Rolls-Royce": "rolls royce luxury car",
+    "Vespa": "vespa scooter", "Ducati": "ducati motorcycle", "Yamaha": "yamaha motorcycle",
+    "Honda": "honda motorcycle", "Harley-Davidson": "harley davidson motorcycle",
+    "MV Agusta": "mv agusta motorcycle",
+    "Formula 1": "formula 1 race car", "MotoGP": "motogp motorcycle racing",
+    "Rally": "rally car racing", "Le Mans": "le mans race car", "NASCAR": "nascar race car",
+    "Motori elettrici": "electric car", "Auto d'epoca": "vintage classic car",
 }
 
 _API_PARAMS_BASE = {"per_page": 10, "orientation": "landscape", "content_filter": "high"}
@@ -91,7 +118,7 @@ def _build_query(category: str, title: str, sub_category: Optional[str]) -> str:
     if re.search(r"\bape\b|\bapi\b", low):
         return "bee"
     if sub_category:
-        return str(sub_category)
+        return SUBCATEGORY_QUERY.get(sub_category, str(sub_category))
     return CATEGORY_QUERY.get(category, category or "nature")
 
 
