@@ -170,7 +170,7 @@ CATEGORY_IMAGES = {
         _u("photo-1503376780353-7e6692767b70"),
         _u("photo-1519925610903-381054cc2a1c"),
         _u("photo-1493238792000-8113da705763"),
-        _u("photo-1571068316344-75bc76f77890"),
+        _u("photo-1609630875171-b1321377ee65"),
         _u("photo-1505761671935-60b3a7427bad"),
     ],
     "Macchine": [
@@ -185,7 +185,7 @@ CATEGORY_IMAGES = {
         _u("photo-1558981806-ec527fa84c39"),
         _u("photo-1547549082-6bc09f2049ae"),
         _u("photo-1558981001-5864b3250a69"),
-        _u("photo-1571068316344-75bc76f77890"),
+        _u("photo-1609630875171-b1321377ee65"),
     ],
     "Invenzioni": [
         _u("photo-1518770660439-4636190af475"),
@@ -224,14 +224,14 @@ CATEGORY_IMAGES = {
 SUBCATEGORY_IMAGES = {
     # ---- Moto brands ----
     "Vespa": [
-        _u("photo-1571068316344-75bc76f77890"),
+        _u("photo-1609630875171-b1321377ee65"),
         _u("photo-1558981001-5864b3250a69"),
         _u("photo-1547549082-6bc09f2049ae"),
     ],
     "Ducati": [
         _u("photo-1558981806-ec527fa84c39"),
         _u("photo-1568772585407-9361f9bf3a87"),
-        _u("photo-1571068316344-75bc76f77890"),
+        _u("photo-1609630875171-b1321377ee65"),
     ],
     "Harley-Davidson": [
         _u("photo-1568772585407-9361f9bf3a87"),
@@ -239,7 +239,7 @@ SUBCATEGORY_IMAGES = {
     ],
     "Yamaha": [
         _u("photo-1558981806-ec527fa84c39"),
-        _u("photo-1571068316344-75bc76f77890"),
+        _u("photo-1609630875171-b1321377ee65"),
     ],
     "Honda": [
         _u("photo-1558981001-5864b3250a69"),
@@ -247,7 +247,7 @@ SUBCATEGORY_IMAGES = {
     ],
     "MV Agusta": [
         _u("photo-1558981806-ec527fa84c39"),
-        _u("photo-1571068316344-75bc76f77890"),
+        _u("photo-1609630875171-b1321377ee65"),
     ],
     # ---- Auto brands ----
     "Ferrari": [
@@ -317,7 +317,7 @@ SUBCATEGORY_IMAGES = {
     "MotoGP": [
         _u("photo-1568772585407-9361f9bf3a87"),
         _u("photo-1558981806-ec527fa84c39"),
-        _u("photo-1571068316344-75bc76f77890"),
+        _u("photo-1609630875171-b1321377ee65"),
     ],
     "Rally": [
         _u("photo-1493238792000-8113da705763"),
