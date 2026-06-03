@@ -55,7 +55,7 @@ CATEGORY_IMAGES = {
         _u("photo-1541432901042-2d8bd64b4a9b"),
         _u("photo-1552832230-c0197dd311b5"),
         _u("photo-1565106430482-8f6e74349ca1"),
-        _u("photo-1608889476561-6242cfdbf622"),
+        _u("photo-1564399579883-451a5d44ec08"),
     ],
     "Cucina": [
         _u("photo-1504674900247-0877df9cc836"),
@@ -168,10 +168,10 @@ CATEGORY_IMAGES = {
     ],
     "Motori": [
         _u("photo-1503376780353-7e6692767b70"),
-        _u("photo-1519925610903-381054cc2a1c"),
+        _u("photo-1583121274602-3e2820c69888"),
         _u("photo-1493238792000-8113da705763"),
-        _u("photo-1571068316344-75bc76f77890"),
-        _u("photo-1505761671935-60b3a7427bad"),
+        _u("photo-1609630875171-b1321377ee65"),
+        _u("photo-1552519507-da3b142c6e3d"),
     ],
     "Macchine": [
         _u("photo-1503376780353-7e6692767b70"),
@@ -185,7 +185,7 @@ CATEGORY_IMAGES = {
         _u("photo-1558981806-ec527fa84c39"),
         _u("photo-1547549082-6bc09f2049ae"),
         _u("photo-1558981001-5864b3250a69"),
-        _u("photo-1571068316344-75bc76f77890"),
+        _u("photo-1609630875171-b1321377ee65"),
     ],
     "Invenzioni": [
         _u("photo-1518770660439-4636190af475"),
@@ -204,7 +204,7 @@ CATEGORY_IMAGES = {
     "Religioni": [
         _u("photo-1507692049790-de58290a4334"),
         _u("photo-1519915028121-7d3463d20b13"),
-        _u("photo-1534312527009-56c7016453e6"),
+        _u("photo-1438032005730-c779502df39b"),
         _u("photo-1519817650390-64a93db51149"),
         _u("photo-1552832230-c0197dd311b5"),
     ],
@@ -224,14 +224,14 @@ CATEGORY_IMAGES = {
 SUBCATEGORY_IMAGES = {
     # ---- Moto brands ----
     "Vespa": [
-        _u("photo-1571068316344-75bc76f77890"),
+        _u("photo-1609630875171-b1321377ee65"),
         _u("photo-1558981001-5864b3250a69"),
         _u("photo-1547549082-6bc09f2049ae"),
     ],
     "Ducati": [
         _u("photo-1558981806-ec527fa84c39"),
         _u("photo-1568772585407-9361f9bf3a87"),
-        _u("photo-1571068316344-75bc76f77890"),
+        _u("photo-1609630875171-b1321377ee65"),
     ],
     "Harley-Davidson": [
         _u("photo-1568772585407-9361f9bf3a87"),
@@ -239,7 +239,7 @@ SUBCATEGORY_IMAGES = {
     ],
     "Yamaha": [
         _u("photo-1558981806-ec527fa84c39"),
-        _u("photo-1571068316344-75bc76f77890"),
+        _u("photo-1609630875171-b1321377ee65"),
     ],
     "Honda": [
         _u("photo-1558981001-5864b3250a69"),
@@ -247,7 +247,7 @@ SUBCATEGORY_IMAGES = {
     ],
     "MV Agusta": [
         _u("photo-1558981806-ec527fa84c39"),
-        _u("photo-1571068316344-75bc76f77890"),
+        _u("photo-1609630875171-b1321377ee65"),
     ],
     # ---- Auto brands ----
     "Ferrari": [
@@ -310,21 +310,21 @@ SUBCATEGORY_IMAGES = {
     ],
     # ---- Motori sub-themes ----
     "Formula 1": [
-        _u("photo-1519925610903-381054cc2a1c"),
+        _u("photo-1583121274602-3e2820c69888"),
         _u("photo-1600712242805-5f78671b24da"),
         _u("photo-1599819811279-d5ad9cccf838"),
     ],
     "MotoGP": [
         _u("photo-1568772585407-9361f9bf3a87"),
         _u("photo-1558981806-ec527fa84c39"),
-        _u("photo-1571068316344-75bc76f77890"),
+        _u("photo-1609630875171-b1321377ee65"),
     ],
     "Rally": [
         _u("photo-1493238792000-8113da705763"),
         _u("photo-1580273916550-e323be2ae537"),
     ],
     "Auto d'epoca": [
-        _u("photo-1505761671935-60b3a7427bad"),
+        _u("photo-1552519507-da3b142c6e3d"),
         _u("photo-1542282088-fe8426682b8f"),
         _u("photo-1494976388531-d1058494cdd8"),
     ],
@@ -343,7 +343,7 @@ KEYWORD_IMAGES: Dict[str, List[str]] = {
         _u("photo-1517783999520-f068d7431a60"),
     ],
     "koala": [
-        _u("photo-1551189014-fe516aed0e9e"),
+        _u("photo-1459262838948-3e2de6c1ec80"),
     ],
     "polpo": [
         _u("photo-1545671913-b89ac1b4ac10"),
@@ -399,7 +399,7 @@ KEYWORD_IMAGES: Dict[str, List[str]] = {
         _u("photo-1516934024742-b461fba47600"),
     ],
     "scimm": [
-        _u("photo-1605559424843-9e4c228bf1c2"),
+        _u("photo-1540573133985-87b6da6d54a9"),
     ],
     "serpent": [
         _u("photo-1531386151447-fd76ad50012f"),
@@ -412,7 +412,7 @@ KEYWORD_IMAGES: Dict[str, List[str]] = {
         _u("photo-1535941339077-2dd1c7963098"),
     ],
     "cavall": [
-        _u("photo-1527153857715-3908f2bae5e8"),
+        _u("photo-1553284965-83fd3e82fa5a"),
     ],
     "gatt": [
         _u("photo-1514888286974-6c03e2ca1dba"),
@@ -423,7 +423,7 @@ KEYWORD_IMAGES: Dict[str, List[str]] = {
         _u("photo-1548199973-03cce0bbc87b"),
     ],
     "fenicott": [
-        _u("photo-1560066984-138dadb4c035"),
+        _u("photo-1497206365907-f5e630693df0"),
         _u("photo-1505506874110-6a7a69069a08"),
     ],
     "aquil": [
@@ -447,7 +447,7 @@ KEYWORD_IMAGES: Dict[str, List[str]] = {
         _u("photo-1446776877081-d282a0f896e2"),
     ],
     "giove": [
-        _u("photo-1614313511387-1436a4480ebb"),
+        _u("photo-1630694093867-4b947d812bf0"),
     ],
     "buco nero": [
         _u("photo-1462331940025-496dfbfc7564"),
@@ -558,6 +558,20 @@ def image_for_fact(category: str, seed: str, sub_category: Optional[str] = None)
 
     h = int(hashlib.md5(str(seed).encode("utf-8")).hexdigest()[:8], 16)
     return pool[h % len(pool)]
+
+
+async def image_for_fact_async(db, category: str, seed: str, sub_category: Optional[str] = None) -> str:
+    """Prefer a real Unsplash photo searched by keyword; fall back to the
+    curated catalog if Unsplash has no key / errors / is rate-limited."""
+    try:
+        from unsplash import get_fact_image
+        url = await get_fact_image(db, category, str(seed), sub_category)
+        if url:
+            return url
+    except Exception as e:
+        import logging
+        logging.getLogger("losapevi").warning(f"[image] Unsplash failed, using catalog: {e}")
+    return image_for_fact(category, seed, sub_category)
 
 
 def first_image_for_category(category: str) -> str:
