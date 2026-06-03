@@ -12,6 +12,7 @@ Get a free key at https://unsplash.com/developers (Client-ID / Access Key).
 """
 import hashlib
 import logging
+import re
 from typing import List, Optional
 
 import httpx
@@ -80,13 +81,14 @@ _API_PARAMS_BASE = {"per_page": 10, "orientation": "landscape", "content_filter"
 
 
 def _build_query(category: str, title: str, sub_category: Optional[str]) -> str:
-    low = " " + str(title or "").lower() + " "
-    # keyword match (most specific) — word-boundary-ish via surrounding spaces/stems
+    low = str(title or "").lower()
+    # keyword match (most specific) — require a word boundary so stems like
+    # "leone" don't match inside "napoleone", "orso" inside "dorso", etc.
     for kw, q in KEYWORD_QUERY.items():
-        if kw in low:
+        if re.search(r"\b" + re.escape(kw), low):
             return q
-    # standalone "ape" (bee) — avoid matching inside other words
-    if " ape " in low or " api " in low:
+    # standalone "ape"/"api" (bee) — full-word only
+    if re.search(r"\bape\b|\bapi\b", low):
         return "bee"
     if sub_category:
         return str(sub_category)
