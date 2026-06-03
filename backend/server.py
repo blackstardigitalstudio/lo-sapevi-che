@@ -28,7 +28,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from seed_facts import SEED_FACTS
 from seed_facts_extra import EXTRA_FACTS
 from seed_facts_v3 import V3_FACTS
-from image_library import image_for_fact
+from image_library import image_for_fact, image_for_fact_async
 
 from deps import db, client
 from scheduler import start_prefill_scheduler, stop_prefill_scheduler
@@ -158,7 +158,7 @@ async def on_startup():
         facts = await cursor.to_list(100000)
         updates = 0
         for f in facts:
-            new_url = image_for_fact(f["category"], f["title"], f.get("sub_category"))
+            new_url = await image_for_fact_async(db, f["category"], f["title"], f.get("sub_category"))
             await db.facts.update_one({"id": f["id"]}, {"$set": {"image_url": new_url}})
             updates += 1
         if updates:

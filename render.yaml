@@ -24,6 +24,8 @@ services:
         sync: false
       - key: GEMINI_MODEL
         value: gemini-2.5-flash
+      - key: UNSPLASH_ACCESS_KEY   # free key: https://unsplash.com/developers (leave unset to use the curated catalog)
+        sync: false
 
   # ---------------- Web app (Expo static export) ----------------
   - type: web

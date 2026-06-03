@@ -17,6 +17,9 @@ ACCESS_TOKEN_MINUTES = 60 * 24 * 30  # 30 days
 # AI: Google Gemini free tier. Get a key at https://aistudio.google.com/apikey
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+# Unsplash: free real photos by keyword. Get a key at https://unsplash.com/developers
+# (leave unset to fall back to the curated image catalog).
+UNSPLASH_ACCESS_KEY = os.environ.get("UNSPLASH_ACCESS_KEY", "")
 
 client = AsyncIOMotorClient(MONGO_URL)
 db = client[DB_NAME]

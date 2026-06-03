@@ -7,7 +7,7 @@ import logging
 from datetime import datetime, timezone, timedelta
 
 from seed_facts import CATEGORIES
-from image_library import image_for_fact
+from image_library import image_for_fact_async
 from deps import db
 from ai import generate_fact_ai
 
@@ -64,7 +64,7 @@ async def prefill_run():
                 continue
             if await db.facts.find_one({"title": ai["title"]}):
                 continue
-            img_url = image_for_fact(cat, ai["title"], None)
+            img_url = await image_for_fact_async(db, cat, ai["title"], None)
             doc = {
                 "id": str(uuid.uuid4()),
                 "title": ai["title"],

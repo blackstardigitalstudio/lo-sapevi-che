@@ -560,6 +560,20 @@ def image_for_fact(category: str, seed: str, sub_category: Optional[str] = None)
     return pool[h % len(pool)]
 
 
+async def image_for_fact_async(db, category: str, seed: str, sub_category: Optional[str] = None) -> str:
+    """Prefer a real Unsplash photo searched by keyword; fall back to the
+    curated catalog if Unsplash has no key / errors / is rate-limited."""
+    try:
+        from unsplash import get_fact_image
+        url = await get_fact_image(db, category, str(seed), sub_category)
+        if url:
+            return url
+    except Exception as e:
+        import logging
+        logging.getLogger("losapevi").warning(f"[image] Unsplash failed, using catalog: {e}")
+    return image_for_fact(category, seed, sub_category)
+
+
 def first_image_for_category(category: str) -> str:
     pool = CATEGORY_IMAGES.get(category, _FALLBACK)
     return pool[0] if pool else _FALLBACK[0]
