@@ -80,6 +80,31 @@ async def privacy_policy():
     return PRIVACY_HTML
 
 
+DELETE_ACCOUNT_HTML = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Account &amp; Data Deletion - Lo Sapevi che?</title>
+<style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:760px;margin:0 auto;padding:32px 20px;color:#1a1a1a;line-height:1.6}h1{font-size:26px}h2{font-size:17px;margin-top:28px;color:#9a7d00}a{color:#9a7d00}small{color:#777}code{background:#f4f4f4;padding:2px 6px;border-radius:4px}</style>
+</head><body>
+<h1>Account &amp; Data Deletion - Lo Sapevi che?</h1>
+<small>Last updated: June 2026</small>
+<p>This page explains how to request deletion of your account and associated data for the app <b>"Lo Sapevi che?"</b>, developed by <b>Black Star Digital Studio</b>. Made in Italy.</p>
+<h2>How to request deletion</h2>
+<p>Send an email to <a href="mailto:blackstardigitalstudio@gmail.com?subject=Delete%20my%20account%20-%20Lo%20Sapevi%20che">blackstardigitalstudio@gmail.com</a> from the email address linked to your account, with the subject <code>Delete my account</code>. We will permanently delete your account and all associated data within 30 days and confirm by email.</p>
+<h2>What data is deleted</h2>
+<p>All data tied to your account is permanently deleted: your <b>email</b>, <b>name</b> and <b>password</b> (stored only as a bcrypt hash), and your <b>preferences and activity</b> (selected interests, liked/saved curiosities, daily streaks and trophies).</p>
+<h2>Data retention</h2>
+<p>No personal data is retained after deletion, except where retention is required by applicable law. Using the App without an account stores no personal data on our servers.</p>
+<h2>Contact</h2>
+<p><a href="mailto:blackstardigitalstudio@gmail.com">blackstardigitalstudio@gmail.com</a></p>
+</body></html>"""
+
+
+@app.get("/delete-account", response_class=HTMLResponse, include_in_schema=False)
+async def delete_account_page():
+    return DELETE_ACCOUNT_HTML
+
+
 # ==========================================================
 # STARTUP / SHUTDOWN
 # ==========================================================
