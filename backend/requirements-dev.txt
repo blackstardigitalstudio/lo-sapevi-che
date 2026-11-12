@@ -1,0 +1,3 @@
+# Strumenti per i test del backend (non servono in produzione).
+-r requirements.txt
+pytest==9.2.0
